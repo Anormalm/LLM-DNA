@@ -1,0 +1,40 @@
+{
+  "dataset_id": "my-rfftrace-collection-v1",
+  "format_version": 1,
+  "generations": 64,
+  "metadata": {
+    "encoder": "sentence-transformers/all-mpnet-base-v2",
+    "notes": "Replace model IDs and prompts before collection."
+  },
+  "model_ids": [
+    "provider/model-a",
+    "provider/model-b"
+  ],
+  "prompts": [
+    {
+      "prompt_id": "cal_000",
+      "split": "calibration",
+      "text": "A calibration prompt that is never used for retrieval."
+    },
+    {
+      "prompt_id": "eval_000",
+      "split": "evaluation",
+      "text": "A held-out evaluation prompt."
+    }
+  ],
+  "random_seed": 2027,
+  "settings": [
+    {
+      "max_new_tokens": 256,
+      "setting_id": "temp_0_7",
+      "temperature": 0.7,
+      "top_p": 0.9
+    },
+    {
+      "max_new_tokens": 256,
+      "setting_id": "temp_1_0",
+      "temperature": 1.0,
+      "top_p": 1.0
+    }
+  ]
+}
