@@ -284,6 +284,80 @@ def expected_response_keys(
                     )
 
 
+def reuse_compatible_responses(
+    source_cache_dir: str | Path,
+    target_manifest: CollectionManifest,
+    target_cache_dir: str | Path,
+) -> Tuple[ResponseDataset, Dict[str, Any]]:
+    """Copy exact response records shared by two compatible collection manifests."""
+
+    source_dir = Path(source_cache_dir)
+    source_manifest_path = source_dir / "manifest.json"
+    if not source_manifest_path.is_file():
+        raise FileNotFoundError(f"source response cache has no manifest: {source_dir}")
+    source_manifest = CollectionManifest.load(source_manifest_path)
+    source = ResponseCache(source_dir, source_manifest).dataset
+
+    source_prompts = {item.prompt_id: item for item in source_manifest.prompts}
+    target_prompts = {item.prompt_id: item for item in target_manifest.prompts}
+    for prompt_id in sorted(set(source_prompts).intersection(target_prompts)):
+        if source_prompts[prompt_id] != target_prompts[prompt_id]:
+            raise ValueError(f"shared prompt definition differs: {prompt_id}")
+    source_settings = {item.setting_id: item for item in source_manifest.settings}
+    target_settings = {item.setting_id: item for item in target_manifest.settings}
+    for setting_id in sorted(set(source_settings).intersection(target_settings)):
+        if source_settings[setting_id] != target_settings[setting_id]:
+            raise ValueError(f"shared decoding setting differs: {setting_id}")
+
+    source_revisions = source_manifest.metadata.get("model_revisions")
+    target_revisions = target_manifest.metadata.get("model_revisions")
+    source_has_revisions = isinstance(source_revisions, dict)
+    target_has_revisions = isinstance(target_revisions, dict)
+    if source_has_revisions != target_has_revisions:
+        raise ValueError(
+            "source and target manifests must either both pin model revisions or both omit them"
+        )
+    if source_has_revisions and target_has_revisions:
+        for model_id in sorted(
+            set(source_manifest.model_ids).intersection(target_manifest.model_ids)
+        ):
+            if source_revisions.get(model_id) != target_revisions.get(model_id):
+                raise ValueError(f"shared model revision differs: {model_id}")
+
+    expected = set(expected_response_keys(target_manifest))
+    target = ResponseCache(target_cache_dir, target_manifest)
+    existing = target.dataset.by_key
+    reused = 0
+    already_present = 0
+    for record in source.records:
+        if record.key not in expected:
+            continue
+        current = existing.get(record.key)
+        if current is not None:
+            if current != record:
+                raise ValueError(f"target cache contains a conflicting record: {record.key}")
+            already_present += 1
+            continue
+        target.append(record)
+        existing[record.key] = record
+        reused += 1
+    dataset = target.dataset
+    return dataset, {
+        "source_manifest_fingerprint": source_manifest.fingerprint,
+        "target_manifest_fingerprint": target_manifest.fingerprint,
+        "source_records": len(source.records),
+        "target_records": len(dataset.records),
+        "reused_records": reused,
+        "already_present_records": already_present,
+        "remaining_records": dataset.expected_count - len(dataset.records),
+        "model_revision_check": (
+            "exact pinned match"
+            if source_has_revisions
+            else "not present in either manifest"
+        ),
+    }
+
+
 def collect_responses(
     manifest: CollectionManifest,
     generator: ResponseGenerator,

@@ -74,6 +74,35 @@ def resolve_model_revisions(
     return replace(manifest, metadata=metadata)
 
 
+def inherit_model_revisions(
+    manifest: CollectionManifest, source: CollectionManifest
+) -> CollectionManifest:
+    """Reuse immutable model commits from a compatible resolved manifest."""
+
+    revisions = source.metadata.get("model_revisions")
+    if not isinstance(revisions, dict):
+        raise ValueError("source manifest has no pinned model_revisions")
+    if set(revisions) != set(source.model_ids):
+        raise ValueError("source model_revisions must contain exactly its model IDs")
+    if set(manifest.model_ids) != set(source.model_ids):
+        raise ValueError("target and source manifests must contain the same model IDs")
+    invalid = sorted(
+        model_id
+        for model_id in manifest.model_ids
+        if not isinstance(revisions.get(model_id), str)
+        or not _COMMIT_PATTERN.fullmatch(revisions[model_id])
+    )
+    if invalid:
+        raise ValueError(f"source manifest contains invalid commit SHAs: {invalid}")
+    metadata = dict(manifest.metadata)
+    metadata["model_revisions"] = {
+        model_id: revisions[model_id] for model_id in manifest.model_ids
+    }
+    metadata["revision_policy"] = "immutable Hugging Face commit SHA"
+    metadata["revision_source_manifest_fingerprint"] = source.fingerprint
+    return replace(manifest, metadata=metadata)
+
+
 class LocalTransformersGenerator:
     """Load one model at a time and generate through its native chat template."""
 

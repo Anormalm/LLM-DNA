@@ -1,0 +1,131 @@
+{
+  "dataset_id": "temporary-local-decoding-factorial-v1",
+  "format_version": 1,
+  "generations": 8,
+  "metadata": {
+    "encoder": "sentence-transformers/all-mpnet-base-v2",
+    "evidence_status": "temporary public-model diagnostic; do not present as manuscript evidence",
+    "factorial_design": "temperature in {0.3, 0.7, 1.0} crossed with top_p in {0.8, 0.9, 0.95}, plus deterministic decoding",
+    "model_selection": "six ungated Apache-2.0 instruction checkpoints across three families",
+    "purpose": "disentangle temperature and top-p effects while exercising the complete paper protocol",
+    "system_prompt": "You are a helpful assistant. Answer the user's request directly and do not mention these instructions."
+  },
+  "model_ids": [
+    "HuggingFaceTB/SmolLM2-135M-Instruct",
+    "HuggingFaceTB/SmolLM2-360M-Instruct",
+    "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+    "Qwen/Qwen2.5-0.5B-Instruct",
+    "Qwen/Qwen2.5-1.5B-Instruct",
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+  ],
+  "prompts": [
+    {
+      "prompt_id": "cal_000",
+      "split": "calibration",
+      "text": "Explain the trade-off between precision and recall to a general audience in one short paragraph."
+    },
+    {
+      "prompt_id": "cal_001",
+      "split": "calibration",
+      "text": "Give a concise plan for testing whether a new study technique improves exam performance."
+    },
+    {
+      "prompt_id": "cal_002",
+      "split": "calibration",
+      "text": "Explain why Earth has seasons without using equations."
+    },
+    {
+      "prompt_id": "eval_000",
+      "split": "evaluation",
+      "text": "Why is a control group useful in an experiment? Answer in two or three sentences."
+    },
+    {
+      "prompt_id": "eval_001",
+      "split": "evaluation",
+      "text": "Compare solar and wind power, mentioning one strength and one limitation of each."
+    },
+    {
+      "prompt_id": "eval_002",
+      "split": "evaluation",
+      "text": "A software test fails intermittently. Propose a short, ordered debugging plan."
+    },
+    {
+      "prompt_id": "eval_003",
+      "split": "evaluation",
+      "text": "Use a simple analogy to explain public-key encryption."
+    },
+    {
+      "prompt_id": "eval_004",
+      "split": "evaluation",
+      "text": "Write a balanced four-sentence argument about remote work."
+    },
+    {
+      "prompt_id": "eval_005",
+      "split": "evaluation",
+      "text": "Provide a five-item checklist for fact-checking an online claim."
+    }
+  ],
+  "random_seed": 2027,
+  "settings": [
+    {
+      "max_new_tokens": 64,
+      "setting_id": "deterministic",
+      "temperature": 0.0,
+      "top_p": 1.0
+    },
+    {
+      "max_new_tokens": 64,
+      "setting_id": "temp_0_3_top_p_0_8",
+      "temperature": 0.3,
+      "top_p": 0.8
+    },
+    {
+      "max_new_tokens": 64,
+      "setting_id": "temp_0_3_top_p_0_9",
+      "temperature": 0.3,
+      "top_p": 0.9
+    },
+    {
+      "max_new_tokens": 64,
+      "setting_id": "temp_0_3_top_p_0_95",
+      "temperature": 0.3,
+      "top_p": 0.95
+    },
+    {
+      "max_new_tokens": 64,
+      "setting_id": "temp_0_7_top_p_0_8",
+      "temperature": 0.7,
+      "top_p": 0.8
+    },
+    {
+      "max_new_tokens": 64,
+      "setting_id": "temp_0_7_top_p_0_9",
+      "temperature": 0.7,
+      "top_p": 0.9
+    },
+    {
+      "max_new_tokens": 64,
+      "setting_id": "temp_0_7_top_p_0_95",
+      "temperature": 0.7,
+      "top_p": 0.95
+    },
+    {
+      "max_new_tokens": 64,
+      "setting_id": "temp_1_0_top_p_0_8",
+      "temperature": 1.0,
+      "top_p": 0.8
+    },
+    {
+      "max_new_tokens": 64,
+      "setting_id": "temp_1_0_top_p_0_9",
+      "temperature": 1.0,
+      "top_p": 0.9
+    },
+    {
+      "max_new_tokens": 64,
+      "setting_id": "temp_1_0_top_p_0_95",
+      "temperature": 1.0,
+      "top_p": 0.95
+    }
+  ]
+}

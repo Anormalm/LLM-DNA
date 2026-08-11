@@ -24,7 +24,7 @@ are sampled once and shared across all models and decoding settings.
 
 ## Quick start
 
-Python 3.9+ and NumPy are required. From the repository root:
+Python 3.10+ and NumPy are required. From the repository root:
 
 ```bash
 python3 -m pip install -e '.[dev]'
@@ -123,7 +123,10 @@ src/distdna/
   dna/                    RFFTrace extractor and DNA signature objects
   experiment.py           retrieval pilot runner
   features.py             shared RFF and projection implementation
+  figures.py              provenance-linked PDF/SVG/PNG figure rendering
   kernels.py              exact MMD and bandwidth calibration
+  relationships.py        family-label relationship diagnostics
+  summary.py              per-run and independent-seed aggregation
   text_demo.py            controlled response-to-retrieval diagnostic
 tests/                    unit and end-to-end coverage
 ```
@@ -184,6 +187,21 @@ responses = collect_responses(
 Each cache contains a copy of `manifest.json` plus append-only `responses.jsonl`. Calling
 `collect_responses` again skips every valid existing cell and generates only missing cells. A
 manifest change is rejected rather than silently mixing experimental conditions.
+
+When a larger manifest is an exact extension of an earlier collection, reuse only records whose
+model revision, prompt definition, decoding definition, generation key, and derived seed all match:
+
+```bash
+distdna reuse-responses \
+  --source-cache data/earlier/responses \
+  --target-manifest data/expanded/collection.resolved.json \
+  --target-cache data/expanded/responses
+```
+
+The command validates both manifests and reports reused and remaining record counts. It never
+coerces a near-match. If network resolution is temporarily unavailable, an expanded manifest may
+inherit pinned 40-character model commits from a compatible resolved manifest with
+`distdna resolve-models --revisions-from ...`; the source fingerprint is recorded in metadata.
 
 Encode a complete cache with a sentence-transformer:
 
@@ -267,6 +285,62 @@ Use singular `projection_dimension` for one optional compact dimension. Use
 See [`configs/projection-sweep.example.json`](configs/projection-sweep.example.json) for a complete
 configuration. Every projection size is kept separate in metrics, ranks, summaries, parameter
 filenames, and repeated-run aggregates.
+
+Create a fail-closed normalization × bandwidth suite from one validated base configuration:
+
+```bash
+distdna make-ablation-suite \
+  --base configs/my-base.json \
+  --config-dir data/my-suite/configs \
+  --result-root results/my-suite \
+  --normalizations l2 none \
+  --bandwidth-multipliers 0.5 1.0 2.0
+```
+
+The generated `suite.json` records every config path and factor cell. Aggregation keeps these
+factors separate and requires balanced independent-seed coverage before its scale gate can pass.
+
+## Decoding, relationship, and figure reports
+
+After aggregating a complete decoding factorial, summarize all same-setting cells and every
+stochastic-query-to-deterministic-reference cell without averaging temperature/top-p combinations
+away:
+
+```bash
+distdna decoding-report \
+  --aggregate results/decoding-aggregate.json \
+  --manifest data/seed2027/collection.resolved.json \
+  --rff-dim 512 \
+  --output results/decoding-report.json
+```
+
+Evaluate coarse relationship recovery from the exact saved distance matrices. The relationship map
+must assign every roster member to exactly one group; self-pairs and singleton groups are handled
+explicitly:
+
+```bash
+distdna relationship-report results/grid-seed2027 results/grid-seed2028 results/grid-seed2029 \
+  --manifest data/seed2027/collection.resolved.json \
+  --relationship-map configs/local-model-relationships.json \
+  --rff-dim 512 \
+  --output results/relationship-report.json
+```
+
+Install the optional plotting dependency and render a fresh, provenance-hashed bundle:
+
+```bash
+python3 -m pip install -e '.[figures]'
+distdna render-figures \
+  --feature-aggregate results/feature-aggregate.json \
+  --projection-aggregate results/projection-aggregate.json \
+  --factorial-aggregate results/factorial-aggregate.json \
+  --decoding-report results/decoding-report.json \
+  --relationship-report results/relationship-report.json \
+  --output-dir results/figures
+```
+
+Six figures are emitted in PDF, SVG, and PNG by default. `figure-manifest.json` records a SHA-256
+for every source report and rendered artifact. Existing figure directories are never overwritten.
 
 ## Output bundle
 

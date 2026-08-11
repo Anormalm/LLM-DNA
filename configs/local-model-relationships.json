@@ -1,0 +1,13 @@
+{
+  "format_version": 1,
+  "evidence_status": "Temporary diagnostic labels based only on public checkpoint families",
+  "groups": {
+    "HuggingFaceTB/SmolLM2-135M-Instruct": "SmolLM2",
+    "HuggingFaceTB/SmolLM2-360M-Instruct": "SmolLM2",
+    "HuggingFaceTB/SmolLM2-1.7B-Instruct": "SmolLM2",
+    "Qwen/Qwen2.5-0.5B-Instruct": "Qwen2.5",
+    "Qwen/Qwen2.5-1.5B-Instruct": "Qwen2.5",
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0": "TinyLlama"
+  },
+  "positive_relation": "same public checkpoint family"
+}

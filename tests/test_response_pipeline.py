@@ -16,6 +16,7 @@ from distdna.data import (
     build_embedding_datasets,
     collect_responses,
     generation_seed,
+    reuse_compatible_responses,
     save_embedding_datasets,
 )
 
@@ -134,6 +135,67 @@ def test_generated_response_provenance_is_persisted(tmp_path: Path) -> None:
     assert responses.records[0].metadata["model_revision"] == "a" * 40
     loaded = ResponseCache(tmp_path / "responses", collection).dataset
     assert loaded.records == responses.records
+
+
+def test_compatible_responses_can_seed_an_expanded_collection(tmp_path: Path) -> None:
+    source_manifest = manifest()
+    source = collect_responses(
+        source_manifest, CountingGenerator(), tmp_path / "source"
+    )
+    target_manifest = CollectionManifest(
+        dataset_id="expanded-unit-test",
+        model_ids=source_manifest.model_ids,
+        settings=source_manifest.settings
+        + (DecodingSetting("extra", 0.5, 0.8, 32),),
+        prompts=source_manifest.prompts,
+        generations=source_manifest.generations,
+        random_seed=source_manifest.random_seed,
+    )
+    reused, report = reuse_compatible_responses(
+        tmp_path / "source", target_manifest, tmp_path / "target"
+    )
+    assert report["reused_records"] == source.expected_count
+    assert report["remaining_records"] == 2 * 1 * 3 * 3
+    assert report["model_revision_check"] == "not present in either manifest"
+    generator = CountingGenerator()
+    completed = collect_responses(target_manifest, generator, tmp_path / "target")
+    assert completed.complete
+    assert generator.calls == report["remaining_records"]
+
+
+def test_response_reuse_rejects_changed_shared_definitions(tmp_path: Path) -> None:
+    source_manifest = manifest()
+    collect_responses(source_manifest, CountingGenerator(), tmp_path / "source")
+    target_manifest = CollectionManifest(
+        dataset_id="changed-unit-test",
+        model_ids=source_manifest.model_ids,
+        settings=(DecodingSetting("low", 0.2, 0.9, 32),),
+        prompts=source_manifest.prompts,
+        generations=source_manifest.generations,
+        random_seed=source_manifest.random_seed,
+    )
+    with pytest.raises(ValueError, match="decoding setting differs"):
+        reuse_compatible_responses(
+            tmp_path / "source", target_manifest, tmp_path / "target"
+        )
+
+
+def test_response_reuse_rejects_one_sided_revision_provenance(tmp_path: Path) -> None:
+    source_manifest = manifest()
+    collect_responses(source_manifest, CountingGenerator(), tmp_path / "source")
+    target_manifest = CollectionManifest(
+        dataset_id="pinned-target",
+        model_ids=source_manifest.model_ids,
+        settings=source_manifest.settings,
+        prompts=source_manifest.prompts,
+        generations=source_manifest.generations,
+        random_seed=source_manifest.random_seed,
+        metadata={"model_revisions": {"m0": "a" * 40, "m1": "b" * 40}},
+    )
+    with pytest.raises(ValueError, match="both pin model revisions"):
+        reuse_compatible_responses(
+            tmp_path / "source", target_manifest, tmp_path / "target"
+        )
 
 
 def test_external_seed_records_require_explicit_manifest_provenance() -> None:

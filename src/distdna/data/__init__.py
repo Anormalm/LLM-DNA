@@ -25,6 +25,7 @@ from .responses import (
     ResponseRecord,
     collect_responses,
     generation_seed,
+    reuse_compatible_responses,
 )
 
 __all__ = [
@@ -49,6 +50,7 @@ __all__ = [
     "audit_llm_dna_responses",
     "collect_responses",
     "generation_seed",
+    "reuse_compatible_responses",
     "normalize_embeddings",
     "import_llm_dna_responses",
     "load_model_aliases",

@@ -127,7 +127,14 @@ def test_end_to_end_artifact_bundle(tmp_path: Path) -> None:
         "evaluation": metadata["inputs"]["evaluation"]["sha256"],
     }
     assert summary["same_setting_evaluation"]["policy"] == "disjoint_generation_pools"
+    assert summary["normalization"] == "l2"
+    assert summary["bandwidth"]["strategy"] == "median"
     assert summary["retrieval"]
+    assert len(summary["setting_retrieval"]) == result.metric_rows
+    assert {
+        (item["query_setting"], item["reference_setting"])
+        for item in summary["setting_retrieval"]
+    } == {("low", "low"), ("high", "low")}
     assert summary["rff_approximation"]
     assert {
         item["projection_dimension"]
@@ -168,6 +175,10 @@ def test_end_to_end_artifact_bundle(tmp_path: Path) -> None:
         "at_least_two_distinct_input_datasets"
     ]
     assert all(item["top_1_std"] == 0.0 for item in aggregate["retrieval"])
+    assert len(aggregate["setting_retrieval"]) == result.metric_rows
+    assert {item["normalization"] for item in aggregate["retrieval"]} == {"l2"}
+    assert aggregate["protocols"][0]["bandwidth_multiplier"] == 1.0
+    assert aggregate["protocols"][0]["sigma_mean"] > 0.0
 
     repeated_map = run_experiment(
         config_for(
@@ -264,3 +275,35 @@ def test_projection_sweep_keeps_every_variant_separate(tmp_path: Path) -> None:
     assert (
         result.output_dir / "parameters" / "rff_D32_L8_seed9.npz"
     ).is_file()
+
+
+def test_aggregate_keeps_protocol_factors_separate(tmp_path: Path) -> None:
+    eval_path, cal_path = write_inputs(tmp_path)
+    first = run_experiment(config_for(tmp_path, eval_path, cal_path))
+
+    payload = config_for(
+        tmp_path,
+        eval_path,
+        cal_path,
+        seed=10,
+        output_name="different-protocol",
+    ).as_dict()
+    payload["experiment"]["normalization"] = "none"
+    payload["experiment"]["bandwidth"]["multiplier"] = 2.0
+    second = run_experiment(ExperimentConfig.from_dict(payload))
+
+    aggregate = aggregate_runs([first.output_dir, second.output_dir])
+    assert len(aggregate["protocols"]) == 2
+    assert {item["normalization"] for item in aggregate["retrieval"]} == {
+        "l2",
+        "none",
+    }
+    assert {item["bandwidth_multiplier"] for item in aggregate["retrieval"]} == {
+        1.0,
+        2.0,
+    }
+    assert all(item["runs"] == 1 for item in aggregate["retrieval"])
+    assert aggregate["scale_readiness"]["checks"]["balanced_protocol_coverage"]
+    assert not aggregate["scale_readiness"]["checks"][
+        "every_protocol_repeated_independently"
+    ]

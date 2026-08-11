@@ -4,7 +4,11 @@ from types import SimpleNamespace
 import pytest
 
 from distdna.data import CollectionManifest, DecodingSetting, Prompt
-from distdna.providers import LocalTransformersGenerator, resolve_model_revisions
+from distdna.providers import (
+    LocalTransformersGenerator,
+    inherit_model_revisions,
+    resolve_model_revisions,
+)
 from distdna.providers.transformers_local import _clear_inherited_max_length
 
 
@@ -68,6 +72,21 @@ def test_model_resolution_rejects_unknown_revision_entries() -> None:
     changed: CollectionManifest = replace(source, metadata=metadata)
     with pytest.raises(ValueError, match="unknown model IDs"):
         resolve_model_revisions(changed, api=FakeHubApi())
+
+
+def test_model_revisions_can_be_inherited_from_a_pinned_manifest() -> None:
+    source = resolve_model_revisions(manifest(), api=FakeHubApi())
+    target = replace(manifest(), dataset_id="expanded-provider-test")
+    inherited = inherit_model_revisions(target, source)
+    assert inherited.metadata["model_revisions"] == source.metadata["model_revisions"]
+    assert (
+        inherited.metadata["revision_source_manifest_fingerprint"]
+        == source.fingerprint
+    )
+
+    incompatible = replace(target, model_ids=("m0",))
+    with pytest.raises(ValueError, match="same model IDs"):
+        inherit_model_revisions(incompatible, source)
 
 
 def test_local_generator_clears_inherited_max_length() -> None:

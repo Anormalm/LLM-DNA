@@ -12,6 +12,9 @@ from typing import Any, Dict, List, Mapping, Sequence, Tuple
 import numpy as np
 
 
+ProtocolKey = Tuple[str, str, float | None, float, int]
+
+
 def _load_metrics(path: Path) -> List[Dict[str, str]]:
     with path.open("r", encoding="utf-8", newline="") as stream:
         rows = list(csv.DictReader(stream))
@@ -24,6 +27,56 @@ def _weighted_mean(rows: Sequence[Mapping[str, str]], field: str) -> float:
     weights = np.asarray([float(row["n_queries"]) for row in rows], dtype=np.float64)
     values = np.asarray([float(row[field]) for row in rows], dtype=np.float64)
     return float(np.sum(weights * values) / np.sum(weights))
+
+
+def _optional_dimension(value: str) -> int | None:
+    return None if value == "NA" else int(value)
+
+
+def _metric_sort_key(row: Mapping[str, str]) -> Tuple[Any, ...]:
+    return (
+        row["method"],
+        int(row["generations"]),
+        -1 if row["rff_dimension"] == "NA" else int(row["rff_dimension"]),
+        -1
+        if row["projection_dimension"] == "NA"
+        else int(row["projection_dimension"]),
+        row["query_setting"],
+        row["reference_setting"],
+    )
+
+
+def _protocol_key(summary: Mapping[str, Any]) -> ProtocolKey:
+    bandwidth = summary["bandwidth"]
+    return (
+        str(summary["normalization"]),
+        str(bandwidth["strategy"]),
+        None if bandwidth["value"] is None else float(bandwidth["value"]),
+        float(bandwidth["multiplier"]),
+        int(bandwidth["max_pairs"]),
+    )
+
+
+def _protocol_fields(key: ProtocolKey) -> Dict[str, Any]:
+    normalization, strategy, value, multiplier, max_pairs = key
+    return {
+        "normalization": normalization,
+        "bandwidth_strategy": strategy,
+        "bandwidth_value": value,
+        "bandwidth_multiplier": multiplier,
+        "bandwidth_max_pairs": max_pairs,
+    }
+
+
+def _protocol_sort_key(key: ProtocolKey) -> Tuple[Any, ...]:
+    normalization, strategy, value, multiplier, max_pairs = key
+    return (
+        normalization,
+        strategy,
+        float("-inf") if value is None else value,
+        multiplier,
+        max_pairs,
+    )
 
 
 def _correlation(left: np.ndarray, right: np.ndarray) -> float | None:
@@ -183,14 +236,31 @@ def summarize_run(output_dir: str | Path) -> Dict[str, Any]:
         item: Dict[str, Any] = {
             "method": method,
             "generations": int(generations),
-            "rff_dimension": None if dimension == "NA" else int(dimension),
-            "projection_dimension": None if projection == "NA" else int(projection),
+            "rff_dimension": _optional_dimension(dimension),
+            "projection_dimension": _optional_dimension(projection),
             "comparison_type": comparison_type,
             "setting_comparisons": len(group_rows),
             "queries": sum(int(row["n_queries"]) for row in group_rows),
         }
         item.update({field: _weighted_mean(group_rows, field) for field in metric_fields})
         retrieval.append(item)
+
+    setting_retrieval: List[Dict[str, Any]] = []
+    for row in sorted(rows, key=_metric_sort_key):
+        item = {
+            "method": row["method"],
+            "generations": int(row["generations"]),
+            "rff_dimension": _optional_dimension(row["rff_dimension"]),
+            "projection_dimension": _optional_dimension(
+                row["projection_dimension"]
+            ),
+            "query_setting": row["query_setting"],
+            "reference_setting": row["reference_setting"],
+            "comparison_type": row["comparison_type"],
+            "queries": int(row["n_queries"]),
+        }
+        item.update({field: float(row[field]) for field in metric_fields})
+        setting_retrieval.append(item)
 
     approximation: List[Dict[str, Any]] = []
     projection_approximation: List[Dict[str, Any]] = []
@@ -272,11 +342,14 @@ def summarize_run(output_dir: str | Path) -> Dict[str, Any]:
         approximation = _summarize_diagnostics(diagnostics)
         projection_approximation = _summarize_diagnostics(projection_diagnostics)
 
+    experiment_config = metadata["config"]["experiment"]
     pilot_checks = _pilot_checks(retrieval, approximation)
     return {
         "format_version": 1,
         "experiment_output": str(source),
         "seed": metadata["config"]["experiment"]["seed"],
+        "normalization": experiment_config["normalization"],
+        "bandwidth": experiment_config["bandwidth"],
         "input_hashes": {
             split: metadata["inputs"][split]["sha256"]
             for split in ("calibration", "evaluation")
@@ -284,6 +357,7 @@ def summarize_run(output_dir: str | Path) -> Dict[str, Any]:
         "sigma": metadata["sigma"],
         "same_setting_evaluation": metadata.get("same_setting_evaluation"),
         "retrieval": retrieval,
+        "setting_retrieval": setting_retrieval,
         "rff_approximation": approximation,
         "projection_approximation": projection_approximation,
         "pilot_checks": pilot_checks,
@@ -301,18 +375,27 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
     summaries = [summarize_run(path) for path in output_dirs]
 
     retrieval_groups: Dict[
-        Tuple[str, int, int | None, int | None, str], List[Mapping[str, Any]]
+        Tuple[ProtocolKey, str, int, int | None, int | None, str],
+        List[Mapping[str, Any]],
+    ] = defaultdict(list)
+    setting_groups: Dict[
+        Tuple[ProtocolKey, str, int, int | None, int | None, str, str],
+        List[Mapping[str, Any]],
     ] = defaultdict(list)
     approximation_groups: Dict[
-        Tuple[int, int, int | None, str], List[Mapping[str, Any]]
+        Tuple[ProtocolKey, int, int, int | None, str], List[Mapping[str, Any]]
     ] = defaultdict(list)
     projection_groups: Dict[
-        Tuple[int, int, int | None, str], List[Mapping[str, Any]]
+        Tuple[ProtocolKey, int, int, int | None, str], List[Mapping[str, Any]]
     ] = defaultdict(list)
+    protocol_summaries: Dict[ProtocolKey, List[Mapping[str, Any]]] = defaultdict(list)
     for summary in summaries:
+        protocol = _protocol_key(summary)
+        protocol_summaries[protocol].append(summary)
         for item in summary["retrieval"]:
             retrieval_groups[
                 (
+                    protocol,
                     item["method"],
                     item["generations"],
                     item["rff_dimension"],
@@ -320,9 +403,22 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
                     item["comparison_type"],
                 )
             ].append(item)
+        for item in summary["setting_retrieval"]:
+            setting_groups[
+                (
+                    protocol,
+                    item["method"],
+                    item["generations"],
+                    item["rff_dimension"],
+                    item["projection_dimension"],
+                    item["query_setting"],
+                    item["reference_setting"],
+                )
+            ].append(item)
         for item in summary["rff_approximation"]:
             approximation_groups[
                 (
+                    protocol,
                     item["generations"],
                     item["rff_dimension"],
                     item["projection_dimension"],
@@ -332,6 +428,7 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
         for item in summary["projection_approximation"]:
             projection_groups[
                 (
+                    protocol,
                     item["generations"],
                     item["rff_dimension"],
                     item["projection_dimension"],
@@ -343,15 +440,17 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
     for key, items in sorted(
         retrieval_groups.items(),
         key=lambda pair: (
-            pair[0][0],
+            _protocol_sort_key(pair[0][0]),
             pair[0][1],
-            -1 if pair[0][2] is None else pair[0][2],
+            pair[0][2],
             -1 if pair[0][3] is None else pair[0][3],
-            pair[0][4],
+            -1 if pair[0][4] is None else pair[0][4],
+            pair[0][5],
         ),
     ):
-        method, generations, dimension, projection, comparison_type = key
+        protocol, method, generations, dimension, projection, comparison_type = key
         row: Dict[str, Any] = {
+            **_protocol_fields(protocol),
             "method": method,
             "generations": generations,
             "rff_dimension": dimension,
@@ -366,23 +465,60 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
             row[f"{name}_std"] = std
         retrieval.append(row)
 
+    setting_retrieval = []
+    for key, items in sorted(
+        setting_groups.items(),
+        key=lambda pair: (
+            _protocol_sort_key(pair[0][0]),
+            pair[0][1],
+            pair[0][2],
+            -1 if pair[0][3] is None else pair[0][3],
+            -1 if pair[0][4] is None else pair[0][4],
+            pair[0][5],
+            pair[0][6],
+        ),
+    ):
+        protocol, method, generations, dimension, projection, query, reference = key
+        row = {
+            **_protocol_fields(protocol),
+            "method": method,
+            "generations": generations,
+            "rff_dimension": dimension,
+            "projection_dimension": projection,
+            "query_setting": query,
+            "reference_setting": reference,
+            "comparison_type": items[0]["comparison_type"],
+            "runs": len(items),
+        }
+        metric_names = [name for name in items[0] if name.startswith("top_")] + [
+            "mrr"
+        ]
+        for name in metric_names:
+            mean, std = _mean_std([float(item[name]) for item in items])
+            row[f"{name}_mean"] = mean
+            row[f"{name}_std"] = std
+        setting_retrieval.append(row)
+
     def aggregate_diagnostics(
         groups: Mapping[
-            Tuple[int, int, int | None, str], Sequence[Mapping[str, Any]]
+            Tuple[ProtocolKey, int, int, int | None, str],
+            Sequence[Mapping[str, Any]],
         ],
     ) -> List[Dict[str, Any]]:
         result: List[Dict[str, Any]] = []
         for key, items in sorted(
             groups.items(),
             key=lambda pair: (
-                pair[0][0],
+                _protocol_sort_key(pair[0][0]),
                 pair[0][1],
-                -1 if pair[0][2] is None else pair[0][2],
-                pair[0][3],
+                pair[0][2],
+                -1 if pair[0][3] is None else pair[0][3],
+                pair[0][4],
             ),
         ):
-            generations, dimension, projection, comparison_type = key
+            protocol, generations, dimension, projection, comparison_type = key
             row = {
+                **_protocol_fields(protocol),
                 "generations": generations,
                 "rff_dimension": dimension,
                 "projection_dimension": projection,
@@ -416,10 +552,50 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
     every_pilot_ready = all(
         summary["pilot_checks"]["ready_for_multi_seed"] for summary in summaries
     )
+    protocols = []
+    every_protocol_repeated = True
+    for protocol, items in sorted(
+        protocol_summaries.items(), key=lambda pair: _protocol_sort_key(pair[0])
+    ):
+        protocol_seeds = {int(item["seed"]) for item in items}
+        protocol_inputs = {
+            (
+                item["input_hashes"]["calibration"],
+                item["input_hashes"]["evaluation"],
+            )
+            for item in items
+        }
+        repeated = len(protocol_seeds) >= 2 and len(protocol_inputs) >= 2
+        every_protocol_repeated = every_protocol_repeated and repeated
+        sigma_mean, sigma_std = _mean_std([float(item["sigma"]) for item in items])
+        protocols.append(
+            {
+                **_protocol_fields(protocol),
+                "runs": len(items),
+                "unique_seed_count": len(protocol_seeds),
+                "unique_input_count": len(protocol_inputs),
+                "sigma_mean": sigma_mean,
+                "sigma_std": sigma_std,
+                "repeated_independently": repeated,
+            }
+        )
+    group_collections = (
+        retrieval_groups,
+        setting_groups,
+        approximation_groups,
+        projection_groups,
+    )
+    balanced_protocol_coverage = all(
+        len(items) == len(protocol_summaries[key[0]])
+        for groups in group_collections
+        for key, items in groups.items()
+    )
     scale_checks = {
         "at_least_two_unique_seeds": unique_seed_count >= 2,
         "at_least_two_distinct_input_datasets": unique_input_count >= 2,
         "every_run_passes_pilot_checks": every_pilot_ready,
+        "every_protocol_repeated_independently": every_protocol_repeated,
+        "balanced_protocol_coverage": balanced_protocol_coverage,
     }
     return {
         "format_version": 1,
@@ -429,7 +605,9 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
         "input_hashes": input_hashes,
         "unique_input_count": unique_input_count,
         "experiment_outputs": [summary["experiment_output"] for summary in summaries],
+        "protocols": protocols,
         "retrieval": retrieval,
+        "setting_retrieval": setting_retrieval,
         "rff_approximation": approximation,
         "projection_approximation": projection_approximation,
         "scale_readiness": {

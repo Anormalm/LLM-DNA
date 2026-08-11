@@ -9,6 +9,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Sequence
 
+from .ablation import write_ablation_suite
 from .api import RFFTraceExtractionConfig, calc_rfftrace
 from .config import ExperimentConfig
 from .data import (
@@ -22,11 +23,19 @@ from .data import (
     SentenceTransformerResponseEncoder,
     build_embedding_datasets,
     collect_responses,
+    reuse_compatible_responses,
     save_embedding_datasets,
 )
 from .demo import create_demo
+from .decoding import build_decoding_report
 from .experiment import run_experiment, validate_experiment
-from .providers import LocalTransformersGenerator, resolve_model_revisions
+from .figures import render_figures
+from .providers import (
+    LocalTransformersGenerator,
+    inherit_model_revisions,
+    resolve_model_revisions,
+)
+from .relationships import build_relationship_report
 from .summary import aggregate_runs, summarize_run, write_summary
 from .text_demo import create_text_pipeline_demo
 
@@ -88,6 +97,11 @@ def _parser() -> argparse.ArgumentParser:
     )
     resolve_models.add_argument("--manifest", type=Path, required=True)
     resolve_models.add_argument("--output", type=Path, required=True)
+    resolve_models.add_argument(
+        "--revisions-from",
+        type=Path,
+        help="inherit already pinned commits from a compatible resolved manifest",
+    )
 
     reseed_manifest = commands.add_parser(
         "reseed-manifest",
@@ -107,6 +121,14 @@ def _parser() -> argparse.ArgumentParser:
         "--dtype", choices=("float16", "bfloat16", "float32"), default="float16"
     )
     collect_local.add_argument("--local-files-only", action="store_true")
+
+    reuse = commands.add_parser(
+        "reuse-responses",
+        help="reuse exact compatible records when expanding a collection manifest",
+    )
+    reuse.add_argument("--source-cache", type=Path, required=True)
+    reuse.add_argument("--target-manifest", type=Path, required=True)
+    reuse.add_argument("--target-cache", type=Path, required=True)
 
     audit_legacy = commands.add_parser(
         "audit-legacy",
@@ -132,6 +154,60 @@ def _parser() -> argparse.ArgumentParser:
     aggregate = commands.add_parser("aggregate", help="aggregate completed pilots across seeds")
     aggregate.add_argument("output_dirs", nargs="+", type=Path)
     aggregate.add_argument("--output", type=Path, help="optionally write the JSON aggregate")
+
+    suite = commands.add_parser(
+        "make-ablation-suite",
+        help="materialize a normalization and bandwidth factorial config suite",
+    )
+    suite.add_argument("--base", type=Path, required=True)
+    suite.add_argument("--config-dir", type=Path, required=True)
+    suite.add_argument("--result-root", type=Path, required=True)
+    suite.add_argument(
+        "--normalizations", nargs="+", choices=("none", "l2"), required=True
+    )
+    suite.add_argument(
+        "--bandwidth-multipliers", nargs="+", type=float, required=True
+    )
+
+    decoding = commands.add_parser(
+        "decoding-report",
+        help="analyze same-setting and stochastic-to-deterministic decoding grids",
+    )
+    decoding.add_argument("--aggregate", type=Path, required=True)
+    decoding.add_argument("--manifest", type=Path, required=True)
+    decoding.add_argument("--output", type=Path, required=True)
+    decoding.add_argument("--normalization", choices=("none", "l2"), default="l2")
+    decoding.add_argument("--bandwidth-multiplier", type=float, default=1.0)
+    decoding.add_argument("--generations", type=int, default=4)
+    decoding.add_argument("--rff-dim", type=int, default=512)
+    decoding.add_argument("--projection-dim", type=int)
+
+    relationships = commands.add_parser(
+        "relationship-report",
+        help="evaluate family-label relationship recovery from saved distances",
+    )
+    relationships.add_argument("output_dirs", nargs="+", type=Path)
+    relationships.add_argument("--manifest", type=Path, required=True)
+    relationships.add_argument("--relationship-map", type=Path, required=True)
+    relationships.add_argument("--output", type=Path, required=True)
+    relationships.add_argument("--normalization", choices=("none", "l2"), default="l2")
+    relationships.add_argument("--bandwidth-multiplier", type=float, default=1.0)
+    relationships.add_argument("--generations", type=int, default=4)
+    relationships.add_argument("--rff-dim", type=int, default=512)
+    relationships.add_argument("--projection-dim", type=int)
+
+    figures = commands.add_parser(
+        "render-figures", help="render final paper figures from completed JSON reports"
+    )
+    figures.add_argument("--feature-aggregate", type=Path, required=True)
+    figures.add_argument("--projection-aggregate", type=Path, required=True)
+    figures.add_argument("--factorial-aggregate", type=Path, required=True)
+    figures.add_argument("--decoding-report", type=Path, required=True)
+    figures.add_argument("--relationship-report", type=Path, required=True)
+    figures.add_argument("--output-dir", type=Path, required=True)
+    figures.add_argument(
+        "--formats", nargs="+", choices=("svg", "pdf", "png"), default=("svg", "pdf", "png")
+    )
 
     extract = commands.add_parser("extract", help="extract shared RFFTrace DNA vectors")
     _add_extraction_arguments(extract)
@@ -324,7 +400,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                     f"resolved manifest already exists; choose a fresh path: {args.output}"
                 )
             manifest = CollectionManifest.load(args.manifest)
-            resolved = resolve_model_revisions(manifest)
+            resolved = (
+                resolve_model_revisions(manifest)
+                if args.revisions_from is None
+                else inherit_model_revisions(
+                    manifest, CollectionManifest.load(args.revisions_from)
+                )
+            )
             written = resolved.save(args.output.resolve())
             print(
                 json.dumps(
@@ -407,6 +489,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             )
             return 0
+        if args.command == "reuse-responses":
+            manifest = CollectionManifest.load(args.target_manifest)
+            _, report = reuse_compatible_responses(
+                args.source_cache, manifest, args.target_cache
+            )
+            print(json.dumps({"status": "complete", **report}, indent=2))
+            return 0
         if args.command == "audit-legacy":
             manifest = CollectionManifest.load(args.manifest)
             report = audit_llm_dna_responses(
@@ -461,6 +550,71 @@ def main(argv: Sequence[str] | None = None) -> int:
                 summary = dict(summary)
                 summary["written_to"] = str(written)
             print(json.dumps(summary, indent=2))
+            return 0
+        if args.command == "make-ablation-suite":
+            suite_path = write_ablation_suite(
+                base_config_path=args.base,
+                config_dir=args.config_dir,
+                result_root=args.result_root,
+                normalizations=args.normalizations,
+                bandwidth_multipliers=args.bandwidth_multipliers,
+            )
+            print(
+                json.dumps(
+                    {"status": "created", "suite": str(suite_path)}, indent=2
+                )
+            )
+            return 0
+        if args.command == "decoding-report":
+            if args.output.exists():
+                raise FileExistsError(
+                    f"decoding report already exists; choose a fresh path: {args.output}"
+                )
+            report = build_decoding_report(
+                args.aggregate,
+                args.manifest,
+                normalization=args.normalization,
+                bandwidth_multiplier=args.bandwidth_multiplier,
+                generations=args.generations,
+                rff_dimension=args.rff_dim,
+                projection_dimension=args.projection_dim,
+            )
+            written = write_summary(report, args.output)
+            print(
+                json.dumps(
+                    {"status": "complete", "output": str(written)}, indent=2
+                )
+            )
+            return 0
+        if args.command == "relationship-report":
+            if args.output.exists():
+                raise FileExistsError(
+                    f"relationship report already exists; choose a fresh path: {args.output}"
+                )
+            report = build_relationship_report(
+                args.output_dirs,
+                args.manifest,
+                args.relationship_map,
+                normalization=args.normalization,
+                bandwidth_multiplier=args.bandwidth_multiplier,
+                generations=args.generations,
+                rff_dimension=args.rff_dim,
+                projection_dimension=args.projection_dim,
+            )
+            written = write_summary(report, args.output)
+            print(json.dumps({"status": "complete", "output": str(written)}, indent=2))
+            return 0
+        if args.command == "render-figures":
+            output_dir = render_figures(
+                args.output_dir,
+                feature_aggregate_path=args.feature_aggregate,
+                projection_aggregate_path=args.projection_aggregate,
+                factorial_aggregate_path=args.factorial_aggregate,
+                decoding_report_path=args.decoding_report,
+                relationship_report_path=args.relationship_report,
+                formats=args.formats,
+            )
+            print(json.dumps({"status": "complete", "output_dir": str(output_dir)}, indent=2))
             return 0
         if args.command == "extract":
             print(json.dumps(_run_extraction(args), indent=2))

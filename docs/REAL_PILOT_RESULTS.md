@@ -100,14 +100,40 @@ measurable loss, so it remains a cost–fidelity ablation rather than an equival
 end-to-end `L=2048` distances correlate with exact MMD at 0.991 ± 0.002 cross-setting and
 0.989 ± 0.002 same-setting. Retrieval remains too coarse in this six-model cohort to select `L`.
 
+## Bandwidth and feature-normalization ablation
+
+The three independent datasets were evaluated under the Cartesian product of response-feature
+normalization `{l2, none}` and median-bandwidth multiplier `{0.5, 1.0, 2.0}`. All 18 runs passed
+the protocol gates, and the aggregate confirmed balanced three-seed coverage for all six cells.
+
+At `R=4`, the L2-normalized Top-1 results were:
+
+| Bandwidth multiplier | Exact MMD cross | Exact MMD same | RFFTrace D=512 cross | RFFTrace D=512 same |
+| ---: | ---: | ---: | ---: | ---: |
+| 0.5 | 0.833 ± 0.083 | 0.889 ± 0.096 | 0.861 ± 0.096 | 0.861 ± 0.048 |
+| 1.0 | 0.833 ± 0.000 | 0.861 ± 0.048 | 0.750 ± 0.083 | 0.861 ± 0.048 |
+| 2.0 | 0.833 ± 0.000 | 0.833 ± 0.000 | 0.750 ± 0.083 | 0.861 ± 0.048 |
+
+The corresponding selected sigmas were `0.6702`, `1.3405`, and `2.6810`. The half-median cell has
+the strongest observed RFFTrace cross-setting retrieval, but each seed contributes only 12 queries
+per comparison type; this difference is not sufficient for bandwidth selection. Exact MMD is more
+stable across the three tested bandwidths.
+
+The normalized and unnormalized cells are numerically identical at reported precision. This is an
+expected property of this encoder output, not evidence that normalization is generally irrelevant:
+across all 2,592 response embeddings, the pre-ablation L2 norms range only from `0.9999999` to
+`1.0000001` with standard deviation `3.49e-8`.
+
 ## Reproducibility record
 
 - Aggregate: `results/local-smoke-aggregate.json`
-- Aggregate SHA-256: `cce4adf34b08fb8251f7be69cdfcda88a76c4f53ef2c1aa77f9986d957783ce4`
+- Aggregate SHA-256: `5cecae2bd3b08af5abe1b088cb11b27fd15643817159665de2bd8595de9f2874`
 - Feature ablation: `results/local-smoke-ablation-aggregate.json`
-- Feature-ablation SHA-256: `02cb989badc7b31a58fa69040e95f4227ffc895bc6fd2963aa2de95ae8a0f5eb`
+- Feature-ablation SHA-256: `bf3bd63fd848a8cde3b5c541c85ece5966e6b916ef03516dddcf696718135c0d`
 - Projection ablation: `results/local-smoke-projection-full-aggregate.json`
-- Projection-ablation SHA-256: `ae797c90f458a41562e2a3b2d5bdd2be76c84590ee9244ddc9dcf2f11191114d`
+- Projection-ablation SHA-256: `72b2b956e2834df8541d50488acb4b3fa1138dd05bc3f1c92cac2274359e9710`
+- Bandwidth/normalization factorial: `results/local-smoke-factorial-aggregate.json`
+- Bandwidth/normalization SHA-256: `d785751becf8b2019c23c34a03addd6edc6cdb65925d5134d52dd8e801bf4dc2`
 - Runtime: macOS 26.4.1 arm64, PyTorch 2.13.0, Transformers 5.14.1,
   Sentence Transformers 5.6.1
 

@@ -27,6 +27,16 @@ This checklist is the executable interpretation of the RFFTrace method used by D
 11. Audit any externally collected response text before encoding. External records must preserve
     their actual generation seeds, source-file hashes, and immutable model revisions; incomplete or
     unknown-provenance cells remain quarantined rather than being silently backfilled or relabeled.
+12. Run the full temperature × top-p factorial plus one deterministic reference. Preserve
+    per-setting retrieval rows, then report factor-level summaries separately for same-setting and
+    stochastic-to-deterministic evaluation.
+13. Evaluate relationship recovery directly from the saved distance matrices using a fully declared
+    roster map. Exclude identity self-pairs, report family-pair AUROC/AP, and calculate nearest-family
+    accuracy only for groups with at least two roster members. Treat coarse public-family labels as
+    diagnostic rather than ground-truth lineage.
+14. Regenerate every final figure from immutable JSON reports. Save vector and raster forms and a
+    manifest linking every source and figure to its SHA-256 digest; never use temporary manuscript
+    figure files as final evidence.
 
 Scale is gated: first close a non-ceiling small-cohort comparison across point, mean, exact-MMD, and
 RFFTrace methods; then repeat seeds; only then expand to the large model cohort.
