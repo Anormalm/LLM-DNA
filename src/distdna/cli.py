@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import Sequence
 
@@ -87,6 +88,14 @@ def _parser() -> argparse.ArgumentParser:
     )
     resolve_models.add_argument("--manifest", type=Path, required=True)
     resolve_models.add_argument("--output", type=Path, required=True)
+
+    reseed_manifest = commands.add_parser(
+        "reseed-manifest",
+        help="clone a manifest with a new collection seed and provenance link",
+    )
+    reseed_manifest.add_argument("--manifest", type=Path, required=True)
+    reseed_manifest.add_argument("--seed", type=int, required=True)
+    reseed_manifest.add_argument("--output", type=Path, required=True)
 
     collect_local = commands.add_parser(
         "collect-local", help="collect a manifest with sequential local Transformers models"
@@ -324,6 +333,36 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "output": str(written),
                         "manifest_fingerprint": resolved.fingerprint,
                         "model_revisions": resolved.metadata["model_revisions"],
+                    },
+                    indent=2,
+                )
+            )
+            return 0
+        if args.command == "reseed-manifest":
+            if args.output.exists():
+                raise FileExistsError(
+                    f"reseeded manifest already exists; choose a fresh path: {args.output}"
+                )
+            manifest = CollectionManifest.load(args.manifest)
+            if args.seed == manifest.random_seed:
+                raise ValueError("new collection seed must differ from the source manifest")
+            metadata = dict(manifest.metadata)
+            metadata["parent_manifest_fingerprint"] = manifest.fingerprint
+            metadata["parent_random_seed"] = manifest.random_seed
+            reseeded = replace(
+                manifest,
+                random_seed=args.seed,
+                metadata=metadata,
+            )
+            written = reseeded.save(args.output.resolve())
+            print(
+                json.dumps(
+                    {
+                        "status": "complete",
+                        "output": str(written),
+                        "random_seed": reseeded.random_seed,
+                        "manifest_fingerprint": reseeded.fingerprint,
+                        "parent_manifest_fingerprint": manifest.fingerprint,
                     },
                     indent=2,
                 )

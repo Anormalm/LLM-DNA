@@ -117,7 +117,21 @@ Preserve these files together:
 
 ## Scaling after the smoke run
 
-Do not reuse the smoke cache under a changed manifest. For the next run, copy the collection
-manifest to a new filename, set `generations` to `32`, expand the final prompt set if available,
-resolve it to a new immutable manifest, and use a new cache/output directory. This supports
-disjoint same-setting evaluation through `R=16`.
+Create independent repeats from the pinned manifest without resolving model revisions again:
+
+```bash
+distdna reseed-manifest \
+  --manifest data/local-smoke/collection.resolved.json \
+  --seed 2028 \
+  --output data/local-smoke-seed2028/collection.resolved.json
+```
+
+The command preserves the complete protocol and immutable model revisions, changes the collection
+seed, records the parent manifest fingerprint, and refuses to overwrite an existing manifest. Use
+a new response cache, embedding directory, experiment seed, and result directory for every repeat.
+The aggregate requires distinct experiment seeds and distinct input hashes.
+
+Do not reuse a response cache under a changed manifest. When moving beyond the pilot, create a new
+manifest, set `generations` to `32`, expand the final prompt set if available, resolve it once to an
+immutable manifest, and use a new cache/output directory. This supports disjoint same-setting
+evaluation through `R=16`.
