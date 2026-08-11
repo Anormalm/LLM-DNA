@@ -17,6 +17,21 @@ from ..data import (
 _COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 
 
+def _clear_inherited_max_length(model: Any) -> None:
+    """Let the manifest's ``max_new_tokens`` be the sole length constraint.
+
+    Some chat checkpoints persist ``max_length`` in their generation config.
+    Transformers warns on every call when that inherited value is combined with
+    the explicit ``max_new_tokens`` supplied by this provider, even though the
+    latter takes precedence. Clearing the unused inherited value keeps the
+    generation contract unambiguous and collection logs quiet.
+    """
+
+    generation_config = getattr(model, "generation_config", None)
+    if generation_config is not None:
+        generation_config.max_length = None
+
+
 def resolve_model_revisions(
     manifest: CollectionManifest, api: Any | None = None
 ) -> CollectionManifest:
@@ -191,6 +206,7 @@ class LocalTransformersGenerator:
             )
             model.to(self.device)
             model.eval()
+            _clear_inherited_max_length(model)
         except Exception as exc:
             self._release_model()
             raise RuntimeError(f"failed to load local model {model_id}: {exc}") from exc

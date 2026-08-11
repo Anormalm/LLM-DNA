@@ -19,8 +19,10 @@ This checklist is the executable interpretation of the RFFTrace method used by D
    query/reference vectors must use disjoint response pools.
 9. Report Top-k, MRR, per-query ranks, exact distance matrices, RFF approximation diagnostics,
    seeds, shapes, hashes, normalization, bandwidth, and the structural NA policy.
-10. Repeat over seeds. Treat controlled diagnostics as implementation checks, not empirical claims
-    about real language models.
+10. Repeat the response collection over independent generation seeds and use a corresponding
+    experiment seed for each run. The aggregate must observe distinct calibration/evaluation input
+    hashes; changing only the RFF-map seed is not an independent repeat. Treat controlled
+    diagnostics as implementation checks, not empirical claims about real language models.
 11. Audit any externally collected response text before encoding. External records must preserve
     their actual generation seeds, source-file hashes, and immutable model revisions; incomplete or
     unknown-provenance cells remain quarantined rather than being silently backfilled or relabeled.

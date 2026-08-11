@@ -158,7 +158,10 @@ distdna aggregate results/seed*/results --output results/aggregate.json
 ```
 
 The aggregate emits `scale_readiness` and does not approve cohort expansion until at least two
-distinct seeds pass every pilot check. Passing this operational gate is not a paper claim.
+distinct experiment seeds and two distinct response-dataset hash pairs pass every pilot check.
+Create each repeated dataset with a new collection `random_seed`; changing only the RFF-map seed
+while reusing identical embeddings is not an independent repeat. Passing this operational gate is
+not a paper claim.
 
 ## Collect and encode real responses
 

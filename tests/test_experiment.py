@@ -35,7 +35,14 @@ def write_inputs(tmp_path: Path, overlapping_prompts: bool = False) -> tuple[Pat
     return eval_path, cal_path
 
 
-def config_for(tmp_path: Path, eval_path: Path, cal_path: Path) -> ExperimentConfig:
+def config_for(
+    tmp_path: Path,
+    eval_path: Path,
+    cal_path: Path,
+    *,
+    seed: int = 9,
+    output_name: str = "results",
+) -> ExperimentConfig:
     return ExperimentConfig.from_dict(
         {
             "data": {"evaluation": str(eval_path), "calibration": str(cal_path)},
@@ -49,7 +56,7 @@ def config_for(tmp_path: Path, eval_path: Path, cal_path: Path) -> ExperimentCon
                     "rfftrace",
                 ],
                 "normalization": "l2",
-                "seed": 9,
+                "seed": seed,
                 "top_ks": [1, 3, 5],
                 "projection_dimension": 8,
                 "comparisons": [
@@ -58,7 +65,10 @@ def config_for(tmp_path: Path, eval_path: Path, cal_path: Path) -> ExperimentCon
                 ],
                 "bandwidth": {"strategy": "median", "max_pairs": 1000},
             },
-            "output": {"directory": str(tmp_path / "results"), "save_distances": True},
+            "output": {
+                "directory": str(tmp_path / output_name),
+                "save_distances": True,
+            },
         }
     )
 
@@ -104,6 +114,10 @@ def test_end_to_end_artifact_bundle(tmp_path: Path) -> None:
         run_experiment(config)
 
     summary = summarize_run(result.output_dir)
+    assert summary["input_hashes"] == {
+        "calibration": metadata["inputs"]["calibration"]["sha256"],
+        "evaluation": metadata["inputs"]["evaluation"]["sha256"],
+    }
     assert summary["same_setting_evaluation"]["policy"] == "disjoint_generation_pools"
     assert summary["retrieval"]
     assert summary["rff_approximation"]
@@ -126,9 +140,30 @@ def test_end_to_end_artifact_bundle(tmp_path: Path) -> None:
     assert aggregate["run_count"] == 1
     assert aggregate["seeds"] == [9]
     assert aggregate["unique_seed_count"] == 1
+    assert aggregate["unique_input_count"] == 1
     assert not aggregate["scale_readiness"]["ready_for_scale"]
     assert not aggregate["scale_readiness"]["checks"]["at_least_two_unique_seeds"]
+    assert not aggregate["scale_readiness"]["checks"][
+        "at_least_two_distinct_input_datasets"
+    ]
     assert all(item["top_1_std"] == 0.0 for item in aggregate["retrieval"])
+
+    repeated_map = run_experiment(
+        config_for(
+            tmp_path,
+            eval_path,
+            cal_path,
+            seed=10,
+            output_name="results-seed10",
+        )
+    )
+    same_data_aggregate = aggregate_runs([result.output_dir, repeated_map.output_dir])
+    assert same_data_aggregate["unique_seed_count"] == 2
+    assert same_data_aggregate["unique_input_count"] == 1
+    assert not same_data_aggregate["scale_readiness"]["ready_for_scale"]
+    assert not same_data_aggregate["scale_readiness"]["checks"][
+        "at_least_two_distinct_input_datasets"
+    ]
 
 
 def test_overlapping_prompt_splits_are_rejected(tmp_path: Path) -> None:

@@ -1,9 +1,11 @@
 from dataclasses import replace
+from types import SimpleNamespace
 
 import pytest
 
 from distdna.data import CollectionManifest, DecodingSetting, Prompt
 from distdna.providers import LocalTransformersGenerator, resolve_model_revisions
+from distdna.providers.transformers_local import _clear_inherited_max_length
 
 
 def manifest() -> CollectionManifest:
@@ -66,3 +68,14 @@ def test_model_resolution_rejects_unknown_revision_entries() -> None:
     changed: CollectionManifest = replace(source, metadata=metadata)
     with pytest.raises(ValueError, match="unknown model IDs"):
         resolve_model_revisions(changed, api=FakeHubApi())
+
+
+def test_local_generator_clears_inherited_max_length() -> None:
+    model = SimpleNamespace(
+        generation_config=SimpleNamespace(max_length=2048, max_new_tokens=None)
+    )
+
+    _clear_inherited_max_length(model)
+
+    assert model.generation_config.max_length is None
+    assert model.generation_config.max_new_tokens is None

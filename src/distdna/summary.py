@@ -199,6 +199,10 @@ def summarize_run(output_dir: str | Path) -> Dict[str, Any]:
         "format_version": 1,
         "experiment_output": str(source),
         "seed": metadata["config"]["experiment"]["seed"],
+        "input_hashes": {
+            split: metadata["inputs"][split]["sha256"]
+            for split in ("calibration", "evaluation")
+        },
         "sigma": metadata["sigma"],
         "same_setting_evaluation": metadata.get("same_setting_evaluation"),
         "retrieval": retrieval,
@@ -289,11 +293,19 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
 
     seeds = [summary["seed"] for summary in summaries]
     unique_seed_count = len(set(seeds))
+    input_hashes = [summary["input_hashes"] for summary in summaries]
+    unique_input_count = len(
+        {
+            (item["calibration"], item["evaluation"])
+            for item in input_hashes
+        }
+    )
     every_pilot_ready = all(
         summary["pilot_checks"]["ready_for_multi_seed"] for summary in summaries
     )
     scale_checks = {
         "at_least_two_unique_seeds": unique_seed_count >= 2,
+        "at_least_two_distinct_input_datasets": unique_input_count >= 2,
         "every_run_passes_pilot_checks": every_pilot_ready,
     }
     return {
@@ -301,6 +313,8 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
         "run_count": len(summaries),
         "seeds": seeds,
         "unique_seed_count": unique_seed_count,
+        "input_hashes": input_hashes,
+        "unique_input_count": unique_input_count,
         "experiment_outputs": [summary["experiment_output"] for summary in summaries],
         "retrieval": retrieval,
         "rff_approximation": approximation,
