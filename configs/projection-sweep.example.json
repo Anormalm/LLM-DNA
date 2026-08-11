@@ -1,0 +1,30 @@
+{
+  "data": {
+    "evaluation": "../data/evaluation.npz",
+    "calibration": "../data/calibration.npz"
+  },
+  "experiment": {
+    "generation_counts": [1, 4, 16],
+    "rff_dimensions": [512],
+    "methods": [
+      "single_sample_cosine",
+      "mean_dna_cosine",
+      "exact_mmd",
+      "rfftrace"
+    ],
+    "normalization": "l2",
+    "seed": 2027,
+    "top_ks": [1, 3, 5],
+    "projection_dimensions": [null, 128, 256, 512, 1024, 2048],
+    "comparisons": [],
+    "bandwidth": {
+      "strategy": "median",
+      "multiplier": 1.0,
+      "max_pairs": 100000
+    }
+  },
+  "output": {
+    "directory": "../results/projection-sweep",
+    "save_distances": true
+  }
+}

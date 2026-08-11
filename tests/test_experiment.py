@@ -42,6 +42,7 @@ def config_for(
     *,
     seed: int = 9,
     output_name: str = "results",
+    projection_dimension: int = 8,
 ) -> ExperimentConfig:
     return ExperimentConfig.from_dict(
         {
@@ -58,7 +59,7 @@ def config_for(
                 "normalization": "l2",
                 "seed": seed,
                 "top_ks": [1, 3, 5],
-                "projection_dimension": 8,
+                "projection_dimension": projection_dimension,
                 "comparisons": [
                     {"query": "low", "reference": "low"},
                     {"query": "high", "reference": "low"},
@@ -92,6 +93,13 @@ def test_end_to_end_artifact_bundle(tmp_path: Path) -> None:
         "exact_mmd",
         "rfftrace",
     }
+    with (result.output_dir / "ranks.csv").open(newline="", encoding="utf-8") as stream:
+        ranks = list(csv.DictReader(stream))
+    assert {
+        row["projection_dimension"]
+        for row in ranks
+        if row["method"] == "rfftrace"
+    } == {"8"}
 
     exact_same = next(
         row
@@ -121,6 +129,19 @@ def test_end_to_end_artifact_bundle(tmp_path: Path) -> None:
     assert summary["same_setting_evaluation"]["policy"] == "disjoint_generation_pools"
     assert summary["retrieval"]
     assert summary["rff_approximation"]
+    assert {
+        item["projection_dimension"]
+        for item in summary["retrieval"]
+        if item["method"] == "rfftrace"
+    } == {8}
+    assert {
+        item["projection_dimension"]
+        for item in summary["retrieval"]
+        if item["method"] != "rfftrace"
+    } == {None}
+    assert {
+        item["projection_dimension"] for item in summary["rff_approximation"]
+    } == {8}
     assert set(summary["pilot_checks"]["checks"]) == {
         "all_methods_present",
         "same_and_cross_setting_present",
@@ -165,6 +186,26 @@ def test_end_to_end_artifact_bundle(tmp_path: Path) -> None:
         "at_least_two_distinct_input_datasets"
     ]
 
+    second_projection = run_experiment(
+        config_for(
+            tmp_path,
+            eval_path,
+            cal_path,
+            seed=11,
+            output_name="results-projection4",
+            projection_dimension=4,
+        )
+    )
+    projection_aggregate = aggregate_runs(
+        [result.output_dir, second_projection.output_dir]
+    )
+    rff_rows = [
+        item for item in projection_aggregate["retrieval"]
+        if item["method"] == "rfftrace"
+    ]
+    assert {item["projection_dimension"] for item in rff_rows} == {4, 8}
+    assert all(item["runs"] == 1 for item in rff_rows)
+
 
 def test_overlapping_prompt_splits_are_rejected(tmp_path: Path) -> None:
     eval_path, cal_path = write_inputs(tmp_path, overlapping_prompts=True)
@@ -186,3 +227,40 @@ def test_same_setting_requires_two_disjoint_generation_pools(tmp_path: Path) -> 
     config = config_for(tmp_path, eval_path, cal_path)
     with pytest.raises(ValueError, match="disjoint query/reference pools"):
         validate_experiment(config)
+
+
+def test_projection_sweep_keeps_every_variant_separate(tmp_path: Path) -> None:
+    eval_path, cal_path = write_inputs(tmp_path)
+    base = config_for(tmp_path, eval_path, cal_path).as_dict()
+    base["experiment"].pop("projection_dimension")
+    base["experiment"]["projection_dimensions"] = [None, 4, 8]
+    base["output"]["directory"] = str(tmp_path / "projection-sweep")
+    result = run_experiment(ExperimentConfig.from_dict(base))
+
+    summary = summarize_run(result.output_dir)
+    rff_rows = [item for item in summary["retrieval"] if item["method"] == "rfftrace"]
+    assert {item["projection_dimension"] for item in rff_rows} == {None, 4, 8}
+    assert len(rff_rows) == 3 * 2 * 2
+    assert {
+        item["projection_dimension"] for item in summary["rff_approximation"]
+    } == {None, 4, 8}
+    assert {
+        item["projection_dimension"] for item in summary["projection_approximation"]
+    } == {4, 8}
+    aggregate = aggregate_runs([result.output_dir])
+    assert {
+        item["projection_dimension"] for item in aggregate["rff_approximation"]
+    } == {None, 4, 8}
+    assert {
+        item["projection_dimension"]
+        for item in aggregate["projection_approximation"]
+    } == {4, 8}
+    assert (
+        result.output_dir / "parameters" / "rff_D32_Lnone_seed9.npz"
+    ).is_file()
+    assert (
+        result.output_dir / "parameters" / "rff_D32_L4_seed9.npz"
+    ).is_file()
+    assert (
+        result.output_dir / "parameters" / "rff_D32_L8_seed9.npz"
+    ).is_file()

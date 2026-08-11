@@ -43,3 +43,25 @@ def test_unknown_keys_and_invalid_bandwidth_fail_fast() -> None:
     payload["experiment"]["top_ks"] = [3, 5]
     with pytest.raises(ValueError, match="must include 1"):
         ExperimentConfig.from_dict(payload)
+
+
+def test_projection_sweep_is_strict_and_round_trips() -> None:
+    payload = minimal_payload()
+    payload["experiment"]["projection_dimensions"] = [None, 32, 64]
+    config = ExperimentConfig.from_dict(payload)
+    assert config.projection_dimensions == (None, 32, 64)
+    assert config.as_dict()["experiment"]["projection_dimensions"] == [None, 32, 64]
+
+    payload["experiment"]["projection_dimension"] = 16
+    with pytest.raises(ValueError, match="either projection_dimension"):
+        ExperimentConfig.from_dict(payload)
+
+    payload = minimal_payload()
+    payload["experiment"]["projection_dimensions"] = [32, 32]
+    with pytest.raises(ValueError, match="duplicates"):
+        ExperimentConfig.from_dict(payload)
+
+    payload = minimal_payload()
+    payload["experiment"]["projection_dimensions"] = [0]
+    with pytest.raises(ValueError, match="positive JSON integers"):
+        ExperimentConfig.from_dict(payload)

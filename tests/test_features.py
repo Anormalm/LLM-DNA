@@ -19,6 +19,15 @@ def test_rfftrace_is_deterministic_nested_and_round_trips(tmp_path: Path) -> Non
     np.testing.assert_allclose(restored.transform(samples), small.transform(samples))
     assert small.transform(samples).shape == (4, 5)
 
+    compact = RFFTrace(3, 16, sigma=1.2, n_prompts=2, seed=17, projection_dim=3)
+    np.testing.assert_allclose(
+        compact.projection * np.sqrt(3), small.projection[:3] * np.sqrt(5)
+    )
+    np.testing.assert_allclose(
+        compact.transform(samples) * np.sqrt(3),
+        small.transform(samples)[:, :3] * np.sqrt(5),
+    )
+
 
 def test_rff_distance_approximates_exact_mmd() -> None:
     rng = np.random.default_rng(4)
@@ -30,4 +39,3 @@ def test_rff_distance_approximates_exact_mmd() -> None:
     approximate = pairwise_squared_euclidean(vectors, vectors)
     exact = exact_mmd_distance_matrix(samples, samples, sigma=1.0)
     np.testing.assert_allclose(approximate, exact, atol=0.035)
-

@@ -17,8 +17,9 @@ This checklist is the executable interpretation of the RFFTrace method used by D
    fixed projection and save it with the RFF parameters.
 8. Evaluate every requested same-setting and cross-setting retrieval comparison. Same-setting
    query/reference vectors must use disjoint response pools.
-9. Report Top-k, MRR, per-query ranks, exact distance matrices, RFF approximation diagnostics,
-   seeds, shapes, hashes, normalization, bandwidth, and the structural NA policy.
+9. Report Top-k, MRR, per-query ranks, exact distance matrices, RFF-to-exact-MMD diagnostics,
+   compact-to-unprojected-RFF diagnostics, seeds, shapes, hashes, normalization, bandwidth, and the
+   structural NA policy. Keep `D` and `L` explicit in every row and aggregation key.
 10. Repeat the response collection over independent generation seeds and use a corresponding
     experiment seed for each run. The aggregate must observe distinct calibration/evaluation input
     hashes; changing only the RFF-map seed is not an independent repeat. Treat controlled

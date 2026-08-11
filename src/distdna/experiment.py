@@ -159,19 +159,31 @@ def run_experiment(config: ExperimentConfig) -> ExperimentResult:
     try:
         parameter_dir = staging / "parameters"
         parameter_dir.mkdir()
-        rff_maps: Dict[int, RFFTrace] = {}
+        rff_maps: Dict[Tuple[int, int | None], RFFTrace] = {}
         if "rfftrace" in config.methods:
             for dimension in config.rff_dimensions:
-                feature_map = RFFTrace(
-                    input_dim=evaluation.feature_dim,
-                    n_features=dimension,
-                    sigma=sigma,
-                    n_prompts=len(evaluation.prompt_ids),
-                    seed=config.seed,
-                    projection_dim=config.projection_dimension,
-                )
-                feature_map.save(parameter_dir / f"rff_D{dimension}_seed{config.seed}.npz")
-                rff_maps[dimension] = feature_map
+                for projection_dimension in config.projection_dimensions:
+                    feature_map = RFFTrace(
+                        input_dim=evaluation.feature_dim,
+                        n_features=dimension,
+                        sigma=sigma,
+                        n_prompts=len(evaluation.prompt_ids),
+                        seed=config.seed,
+                        projection_dim=projection_dimension,
+                    )
+                    projection_suffix = (
+                        ""
+                        if len(config.projection_dimensions) == 1
+                        else f"_L{projection_dimension or 'none'}"
+                    )
+                    feature_map.save(
+                        parameter_dir
+                        / (
+                            f"rff_D{dimension}{projection_suffix}_seed"
+                            f"{config.seed}.npz"
+                        )
+                    )
+                    rff_maps[(dimension, projection_dimension)] = feature_map
 
         metric_rows: List[Dict[str, Any]] = []
         rank_rows: List[Dict[str, Any]] = []
@@ -196,11 +208,15 @@ def run_experiment(config: ExperimentConfig) -> ExperimentResult:
                 for setting_id in evaluation.setting_ids
             }
             for method in config.methods:
-                dimensions: Iterable[int | None] = (
-                    config.rff_dimensions if method == "rfftrace" else (None,)
+                variants: Iterable[Tuple[int | None, int | None]] = (
+                    tuple(rff_maps) if method == "rfftrace" else ((None, None),)
                 )
-                for dimension in dimensions:
-                    feature_map = None if dimension is None else rff_maps[dimension]
+                for dimension, projection_dimension in variants:
+                    feature_map = (
+                        None
+                        if dimension is None
+                        else rff_maps[(dimension, projection_dimension)]
+                    )
                     rff_vector_cache = (
                         {
                             (setting_id, pool): feature_map.transform(samples)
@@ -245,6 +261,7 @@ def run_experiment(config: ExperimentConfig) -> ExperimentResult:
                         )
                         run_key = (
                             f"{method}__R{generations}__D{dimension or 'na'}"
+                            f"__L{projection_dimension or 'na'}"
                             f"__q_{_safe_key(comparison.query)}"
                             f"__ref_{_safe_key(comparison.reference)}"
                         )
@@ -255,8 +272,8 @@ def run_experiment(config: ExperimentConfig) -> ExperimentResult:
                             "rff_dimension": "NA" if dimension is None else dimension,
                             "projection_dimension": (
                                 "NA"
-                                if method != "rfftrace" or config.projection_dimension is None
-                                else config.projection_dimension
+                                if method != "rfftrace" or projection_dimension is None
+                                else projection_dimension
                             ),
                             "query_setting": comparison.query,
                             "reference_setting": comparison.reference,
@@ -279,6 +296,12 @@ def run_experiment(config: ExperimentConfig) -> ExperimentResult:
                                     "method": method,
                                     "generations": generations,
                                     "rff_dimension": "NA" if dimension is None else dimension,
+                                    "projection_dimension": (
+                                        "NA"
+                                        if method != "rfftrace"
+                                        or projection_dimension is None
+                                        else projection_dimension
+                                    ),
                                     "query_setting": comparison.query,
                                     "reference_setting": comparison.reference,
                                     "query_model_id": model_id,

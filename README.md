@@ -141,7 +141,9 @@ Existing student-branch response folders must pass the
 requires complete cells, actual generation seeds, source-file hashes, and exact model revisions;
 unknown-provenance responses are reported but never admitted to the paper pipeline.
 
-Summarize retrieval performance and the RFF approximation to exact MMD:
+Summarize retrieval performance, the RFF approximation to exact MMD, and—when an unprojected
+variant accompanies a projection sweep—the compact projection's approximation to its shared
+unprojected RFF map:
 
 ```bash
 distdna summarize demo/results --output demo/results/summary.json
@@ -254,6 +256,18 @@ setting comparisons use the primary pool from each distinct setting. RFF dimensi
 nested-prefix ablations: the first `D` frequencies and phases are identical across dimension
 settings for a fixed seed.
 
+Use singular `projection_dimension` for one optional compact dimension. Use
+`projection_dimensions` for an auditable sweep that includes the unprojected reference as `null`:
+
+```json
+"rff_dimensions": [512],
+"projection_dimensions": [null, 128, 256, 512, 1024, 2048]
+```
+
+See [`configs/projection-sweep.example.json`](configs/projection-sweep.example.json) for a complete
+configuration. Every projection size is kept separate in metrics, ranks, summaries, parameter
+filenames, and repeated-run aggregates.
+
 ## Output bundle
 
 Every run requires a new output directory and publishes it only after all computations succeed:
@@ -262,10 +276,11 @@ Every run requires a new output directory and publishes it only after all comput
 - `ranks.csv`: one auditable rank per query model and aggregate row;
 - `distances.npz`: the exact distance matrix behind each row, when enabled;
 - `parameters/rff_D*_seed*.npz`: the exact shared frequencies, phases, and optional projection;
+  projection sweeps add `_L*` to each parameter filename;
 - `metadata.json`: resolved config, selected sigma, input SHA-256 hashes, tensor shapes, IDs,
   artifact counts, and the NA policy.
-- `summary.json`, when requested: retrieval averages split by same/cross-setting evaluation and
-  RFF-to-exact-MMD distance correlation, MAE, and RMSE.
+- `summary.json`, when requested: retrieval averages split by same/cross-setting evaluation,
+  RFF-to-exact-MMD diagnostics, and compact-to-unprojected-RFF distance correlation, MAE, and RMSE.
 
 NA has only two structural meanings: a non-RFF method has no RFF dimension, and an unprojected
 method has no projection dimension. Missing experimental measurements cause a validation error.

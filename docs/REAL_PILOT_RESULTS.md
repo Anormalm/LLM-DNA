@@ -45,10 +45,69 @@ small and the query count too limited to support a superiority claim.
 The 256-feature map is a close approximation to the exact distance matrices in this pilot, with
 low variation across independent response datasets.
 
+## Feature-dimension ablation
+
+The three datasets were rerun over `R = {1, 2, 3, 4}` and
+`D = {16, 32, 64, 128, 256, 512, 1024}`. The sweep follows the manuscript's finite-sample analysis,
+which predicts approximation error decreasing with both the generation count and feature dimension.
+
+At four generations, distance correlation with exact MMD was:
+
+| RFF D | Cross-setting | Same-setting |
+| ---: | ---: | ---: |
+| 16 | 0.821 ± 0.028 | 0.854 ± 0.013 |
+| 32 | 0.922 ± 0.032 | 0.918 ± 0.004 |
+| 64 | 0.967 ± 0.007 | 0.961 ± 0.023 |
+| 128 | 0.980 ± 0.005 | 0.980 ± 0.009 |
+| 256 | 0.988 ± 0.002 | 0.989 ± 0.004 |
+| 512 | 0.996 ± 0.001 | 0.995 ± 0.001 |
+| 1024 | 0.998 ± 0.000 | 0.998 ± 0.000 |
+
+Approximation quality improves consistently with `D`. Top-1 retrieval is not monotonic because the
+cohort contains only six reference models: small distance perturbations can flip a rank even when
+the full matrices are nearly identical. Therefore retrieval peaks must not be used to claim that a
+smaller randomized map outperforms exact MMD.
+
+For the next protocol, `D=512` is the smallest tested dimension that exceeds approximately 0.99
+correlation in both comparison types. `D=256` remains a reasonable lower-cost pilot setting at
+approximately 0.988 correlation. Compact-projection dimensions must be evaluated separately and
+must remain explicit in every summary and aggregate key.
+
+## Compact-projection ablation
+
+With `D=512`, the unprojected vector has `T × D = 6 × 512 = 3,072` coordinates. A second
+three-seed sweep evaluated fixed Gaussian projections at
+`L = {32, 64, 128, 256, 512, 1024, 2048}`. Each projection matrix was sampled once per seed and
+shared across all models, prompts, decoding settings, generation counts, and comparison roles, as
+required by the manuscript.
+
+At four generations, correlation of projected distances with the corresponding unprojected
+RFFTrace distances was:
+
+| Projection L | Cross-setting | Same-setting |
+| ---: | ---: | ---: |
+| 32 | 0.714 ± 0.148 | 0.711 ± 0.085 |
+| 64 | 0.825 ± 0.092 | 0.819 ± 0.052 |
+| 128 | 0.926 ± 0.010 | 0.915 ± 0.007 |
+| 256 | 0.949 ± 0.008 | 0.953 ± 0.010 |
+| 512 | 0.967 ± 0.009 | 0.972 ± 0.008 |
+| 1024 | 0.988 ± 0.004 | 0.990 ± 0.001 |
+| 2048 | 0.995 ± 0.001 | 0.995 ± 0.001 |
+
+`L=2048` is the smallest tested setting above 0.99 in both comparison types. It reduces the pilot
+vector from 3,072 to 2,048 coordinates. `L=1024` gives threefold compression with a modest but
+measurable loss, so it remains a cost–fidelity ablation rather than an equivalent replacement. The
+end-to-end `L=2048` distances correlate with exact MMD at 0.991 ± 0.002 cross-setting and
+0.989 ± 0.002 same-setting. Retrieval remains too coarse in this six-model cohort to select `L`.
+
 ## Reproducibility record
 
 - Aggregate: `results/local-smoke-aggregate.json`
-- Aggregate SHA-256: `cbcca80c23d9a769e3feb43728b85f368de5173823a19075b0fe8e29e68bf4d8`
+- Aggregate SHA-256: `cce4adf34b08fb8251f7be69cdfcda88a76c4f53ef2c1aa77f9986d957783ce4`
+- Feature ablation: `results/local-smoke-ablation-aggregate.json`
+- Feature-ablation SHA-256: `02cb989badc7b31a58fa69040e95f4227ffc895bc6fd2963aa2de95ae8a0f5eb`
+- Projection ablation: `results/local-smoke-projection-full-aggregate.json`
+- Projection-ablation SHA-256: `ae797c90f458a41562e2a3b2d5bdd2be76c84590ee9244ddc9dcf2f11191114d`
 - Runtime: macOS 26.4.1 arm64, PyTorch 2.13.0, Transformers 5.14.1,
   Sentence Transformers 5.6.1
 
@@ -60,5 +119,6 @@ artifact bundles.
 
 The implementation is ready for a larger protocol, but this temporary cohort should not be expanded
 blindly. The next run should use the final model roster, more evaluation prompts, 32 generations per
-cell, and at least three independent collection seeds. That supports disjoint same-setting
+cell, and at least three independent collection seeds. It should retain unprojected `D=512` as the
+reference and compare `L=1024` and `L=2048` explicitly. That supports disjoint same-setting
 evaluation through `R=16` and gives a more credible uncertainty estimate.

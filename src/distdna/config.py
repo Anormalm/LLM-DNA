@@ -53,7 +53,7 @@ class ExperimentConfig:
     normalization: str
     seed: int
     top_ks: Tuple[int, ...]
-    projection_dimension: int | None
+    projection_dimensions: Tuple[int | None, ...]
     comparisons: Tuple[ComparisonConfig, ...]
     bandwidth: BandwidthConfig
     save_distances: bool
@@ -88,6 +88,7 @@ class ExperimentConfig:
                 "seed",
                 "top_ks",
                 "projection_dimension",
+                "projection_dimensions",
                 "comparisons",
                 "bandwidth",
             },
@@ -137,14 +138,29 @@ class ExperimentConfig:
             raise ValueError("seed must be a JSON integer")
         seed = seed_raw
 
-        projection_raw = experiment.get("projection_dimension")
-        if projection_raw is not None and (
-            not isinstance(projection_raw, int) or isinstance(projection_raw, bool)
+        if "projection_dimension" in experiment and "projection_dimensions" in experiment:
+            raise ValueError(
+                "use either projection_dimension or projection_dimensions, not both"
+            )
+        if "projection_dimensions" in experiment:
+            projection_raw = experiment["projection_dimensions"]
+            if not isinstance(projection_raw, list) or not projection_raw:
+                raise ValueError(
+                    "projection_dimensions must be a non-empty JSON array"
+                )
+            projection_dimensions = tuple(projection_raw)
+        else:
+            projection_dimensions = (experiment.get("projection_dimension"),)
+        if any(
+            value is not None
+            and (not isinstance(value, int) or isinstance(value, bool) or value <= 0)
+            for value in projection_dimensions
         ):
-            raise ValueError("projection_dimension must be a JSON integer or null")
-        projection_dimension = projection_raw
-        if projection_dimension is not None and projection_dimension <= 0:
-            raise ValueError("projection_dimension must be positive")
+            raise ValueError(
+                "projection dimensions must contain positive JSON integers or null"
+            )
+        if len(set(projection_dimensions)) != len(projection_dimensions):
+            raise ValueError("projection dimensions cannot contain duplicates")
 
         comparisons_raw = experiment.get("comparisons", [])
         if not isinstance(comparisons_raw, list):
@@ -202,7 +218,7 @@ class ExperimentConfig:
             normalization=normalization,
             seed=seed,
             top_ks=top_ks,
-            projection_dimension=projection_dimension,
+            projection_dimensions=projection_dimensions,
             comparisons=tuple(comparisons),
             bandwidth=bandwidth,
             save_distances=save_distances,
@@ -221,7 +237,11 @@ class ExperimentConfig:
                 "normalization": self.normalization,
                 "seed": self.seed,
                 "top_ks": list(self.top_ks),
-                "projection_dimension": self.projection_dimension,
+                **(
+                    {"projection_dimension": self.projection_dimensions[0]}
+                    if len(self.projection_dimensions) == 1
+                    else {"projection_dimensions": list(self.projection_dimensions)}
+                ),
                 "comparisons": [
                     {"query": item.query, "reference": item.reference}
                     for item in self.comparisons
@@ -238,3 +258,13 @@ class ExperimentConfig:
                 "save_distances": self.save_distances,
             },
         }
+
+    @property
+    def projection_dimension(self) -> int | None:
+        """Backward-compatible singular value for non-sweep configurations."""
+
+        return (
+            self.projection_dimensions[0]
+            if len(self.projection_dimensions) == 1
+            else None
+        )

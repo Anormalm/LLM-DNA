@@ -38,6 +38,57 @@ def _correlation(left: np.ndarray, right: np.ndarray) -> float | None:
     return float(np.sum(left_centered * right_centered) / denominator)
 
 
+def _distance_diagnostic(
+    reference: np.ndarray, approximate: np.ndarray
+) -> Dict[str, float | None]:
+    errors = approximate - reference
+    return {
+        "correlation": _correlation(reference, approximate),
+        "mae": float(np.mean(np.abs(errors))),
+        "rmse": math.sqrt(float(np.mean(errors * errors))),
+    }
+
+
+def _summarize_diagnostics(
+    diagnostics: Mapping[
+        Tuple[int, int, int | None, str], Sequence[Mapping[str, float | None]]
+    ],
+) -> List[Dict[str, Any]]:
+    summary: List[Dict[str, Any]] = []
+    for key, values in sorted(
+        diagnostics.items(),
+        key=lambda pair: (
+            pair[0][0],
+            pair[0][1],
+            -1 if pair[0][2] is None else pair[0][2],
+            pair[0][3],
+        ),
+    ):
+        generations, dimension, projection, comparison_type = key
+        correlations = [
+            item["correlation"]
+            for item in values
+            if item["correlation"] is not None
+        ]
+        summary.append(
+            {
+                "generations": generations,
+                "rff_dimension": dimension,
+                "projection_dimension": projection,
+                "comparison_type": comparison_type,
+                "setting_comparisons": len(values),
+                "distance_correlation": (
+                    None
+                    if not correlations
+                    else float(np.mean(np.asarray(correlations, dtype=np.float64)))
+                ),
+                "mae": float(np.mean([item["mae"] for item in values])),
+                "rmse": float(np.mean([item["rmse"] for item in values])),
+            }
+        )
+    return summary
+
+
 def _pilot_checks(
     retrieval: Sequence[Mapping[str, Any]],
     approximation: Sequence[Mapping[str, Any]],
@@ -102,12 +153,15 @@ def summarize_run(output_dir: str | Path) -> Dict[str, Any]:
     with metadata_path.open("r", encoding="utf-8") as stream:
         metadata = json.load(stream)
 
-    retrieval_groups: Dict[Tuple[str, str, str, str], List[Mapping[str, str]]] = defaultdict(list)
+    retrieval_groups: Dict[
+        Tuple[str, str, str, str, str], List[Mapping[str, str]]
+    ] = defaultdict(list)
     for row in rows:
         key = (
             row["method"],
             row["generations"],
             row["rff_dimension"],
+            row["projection_dimension"],
             row["comparison_type"],
         )
         retrieval_groups[key].append(row)
@@ -115,12 +169,22 @@ def summarize_run(output_dir: str | Path) -> Dict[str, Any]:
     metric_fields = [field for field in rows[0] if field.startswith("top_")]
     metric_fields.append("mrr")
     retrieval = []
-    for key, group_rows in sorted(retrieval_groups.items()):
-        method, generations, dimension, comparison_type = key
+    for key, group_rows in sorted(
+        retrieval_groups.items(),
+        key=lambda pair: (
+            pair[0][0],
+            int(pair[0][1]),
+            -1 if pair[0][2] == "NA" else int(pair[0][2]),
+            -1 if pair[0][3] == "NA" else int(pair[0][3]),
+            pair[0][4],
+        ),
+    ):
+        method, generations, dimension, projection, comparison_type = key
         item: Dict[str, Any] = {
             "method": method,
             "generations": int(generations),
             "rff_dimension": None if dimension == "NA" else int(dimension),
+            "projection_dimension": None if projection == "NA" else int(projection),
             "comparison_type": comparison_type,
             "setting_comparisons": len(group_rows),
             "queries": sum(int(row["n_queries"]) for row in group_rows),
@@ -128,7 +192,8 @@ def summarize_run(output_dir: str | Path) -> Dict[str, Any]:
         item.update({field: _weighted_mean(group_rows, field) for field in metric_fields})
         retrieval.append(item)
 
-    approximation = []
+    approximation: List[Dict[str, Any]] = []
+    projection_approximation: List[Dict[str, Any]] = []
     if distances_path.is_file():
         exact_lookup = {
             (
@@ -139,11 +204,35 @@ def summarize_run(output_dir: str | Path) -> Dict[str, Any]:
             for row in rows
             if row["method"] == "exact_mmd"
         }
-        diagnostics: Dict[Tuple[int, int, str], List[Dict[str, float | None]]] = defaultdict(list)
+        diagnostics: Dict[
+            Tuple[int, int, int | None, str], List[Dict[str, float | None]]
+        ] = defaultdict(list)
+        unprojected_lookup = {
+            (
+                row["generations"],
+                row["rff_dimension"],
+                row["query_setting"],
+                row["reference_setting"],
+            ): row
+            for row in rows
+            if row["method"] == "rfftrace"
+            and row["projection_dimension"] == "NA"
+        }
+        projection_diagnostics: Dict[
+            Tuple[int, int, int | None, str], List[Dict[str, float | None]]
+        ] = defaultdict(list)
         with np.load(distances_path, allow_pickle=False) as distances:
             for row in rows:
                 if row["method"] != "rfftrace":
                     continue
+                projection = (
+                    None
+                    if row["projection_dimension"] == "NA"
+                    else int(row["projection_dimension"])
+                )
+                approximate = np.asarray(
+                    distances[row["run_key"]], dtype=np.float64
+                ).reshape(-1)
                 match = exact_lookup.get(
                     (
                         row["generations"],
@@ -151,48 +240,37 @@ def summarize_run(output_dir: str | Path) -> Dict[str, Any]:
                         row["reference_setting"],
                     )
                 )
-                if match is None:
-                    continue
-                exact = np.asarray(distances[match["run_key"]], dtype=np.float64).reshape(-1)
-                approximate = np.asarray(
-                    distances[row["run_key"]], dtype=np.float64
-                ).reshape(-1)
-                errors = approximate - exact
-                diagnostics[
-                    (
-                        int(row["generations"]),
-                        int(row["rff_dimension"]),
-                        row["comparison_type"],
-                    )
-                ].append(
-                    {
-                        "correlation": _correlation(exact, approximate),
-                        "mae": float(np.mean(np.abs(errors))),
-                        "rmse": math.sqrt(float(np.mean(errors * errors))),
-                    }
+                diagnostic_key = (
+                    int(row["generations"]),
+                    int(row["rff_dimension"]),
+                    projection,
+                    row["comparison_type"],
                 )
-        for key, values in sorted(diagnostics.items()):
-            generations, dimension, comparison_type = key
-            correlations = [
-                item["correlation"]
-                for item in values
-                if item["correlation"] is not None
-            ]
-            approximation.append(
-                {
-                    "generations": generations,
-                    "rff_dimension": dimension,
-                    "comparison_type": comparison_type,
-                    "setting_comparisons": len(values),
-                    "distance_correlation": (
-                        None
-                        if not correlations
-                        else float(np.mean(np.asarray(correlations, dtype=np.float64)))
-                    ),
-                    "mae": float(np.mean([item["mae"] for item in values])),
-                    "rmse": float(np.mean([item["rmse"] for item in values])),
-                }
-            )
+                if match is not None:
+                    exact = np.asarray(
+                        distances[match["run_key"]], dtype=np.float64
+                    ).reshape(-1)
+                    diagnostics[diagnostic_key].append(
+                        _distance_diagnostic(exact, approximate)
+                    )
+                if projection is not None:
+                    unprojected = unprojected_lookup.get(
+                        (
+                            row["generations"],
+                            row["rff_dimension"],
+                            row["query_setting"],
+                            row["reference_setting"],
+                        )
+                    )
+                    if unprojected is not None:
+                        reference = np.asarray(
+                            distances[unprojected["run_key"]], dtype=np.float64
+                        ).reshape(-1)
+                        projection_diagnostics[diagnostic_key].append(
+                            _distance_diagnostic(reference, approximate)
+                        )
+        approximation = _summarize_diagnostics(diagnostics)
+        projection_approximation = _summarize_diagnostics(projection_diagnostics)
 
     pilot_checks = _pilot_checks(retrieval, approximation)
     return {
@@ -207,6 +285,7 @@ def summarize_run(output_dir: str | Path) -> Dict[str, Any]:
         "same_setting_evaluation": metadata.get("same_setting_evaluation"),
         "retrieval": retrieval,
         "rff_approximation": approximation,
+        "projection_approximation": projection_approximation,
         "pilot_checks": pilot_checks,
     }
 
@@ -221,8 +300,15 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
         raise ValueError("at least one experiment output is required")
     summaries = [summarize_run(path) for path in output_dirs]
 
-    retrieval_groups: Dict[Tuple[str, int, int | None, str], List[Mapping[str, Any]]] = defaultdict(list)
-    approximation_groups: Dict[Tuple[int, int, str], List[Mapping[str, Any]]] = defaultdict(list)
+    retrieval_groups: Dict[
+        Tuple[str, int, int | None, int | None, str], List[Mapping[str, Any]]
+    ] = defaultdict(list)
+    approximation_groups: Dict[
+        Tuple[int, int, int | None, str], List[Mapping[str, Any]]
+    ] = defaultdict(list)
+    projection_groups: Dict[
+        Tuple[int, int, int | None, str], List[Mapping[str, Any]]
+    ] = defaultdict(list)
     for summary in summaries:
         for item in summary["retrieval"]:
             retrieval_groups[
@@ -230,6 +316,7 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
                     item["method"],
                     item["generations"],
                     item["rff_dimension"],
+                    item["projection_dimension"],
                     item["comparison_type"],
                 )
             ].append(item)
@@ -238,6 +325,16 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
                 (
                     item["generations"],
                     item["rff_dimension"],
+                    item["projection_dimension"],
+                    item["comparison_type"],
+                )
+            ].append(item)
+        for item in summary["projection_approximation"]:
+            projection_groups[
+                (
+                    item["generations"],
+                    item["rff_dimension"],
+                    item["projection_dimension"],
                     item["comparison_type"],
                 )
             ].append(item)
@@ -249,14 +346,16 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
             pair[0][0],
             pair[0][1],
             -1 if pair[0][2] is None else pair[0][2],
-            pair[0][3],
+            -1 if pair[0][3] is None else pair[0][3],
+            pair[0][4],
         ),
     ):
-        method, generations, dimension, comparison_type = key
+        method, generations, dimension, projection, comparison_type = key
         row: Dict[str, Any] = {
             "method": method,
             "generations": generations,
             "rff_dimension": dimension,
+            "projection_dimension": projection,
             "comparison_type": comparison_type,
             "runs": len(items),
         }
@@ -267,29 +366,43 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
             row[f"{name}_std"] = std
         retrieval.append(row)
 
-    approximation = []
-    for key, items in sorted(approximation_groups.items()):
-        generations, dimension, comparison_type = key
-        row = {
-            "generations": generations,
-            "rff_dimension": dimension,
-            "comparison_type": comparison_type,
-            "runs": len(items),
-        }
-        for source_name, output_name in (
-            ("distance_correlation", "distance_correlation"),
-            ("mae", "mae"),
-            ("rmse", "rmse"),
+    def aggregate_diagnostics(
+        groups: Mapping[
+            Tuple[int, int, int | None, str], Sequence[Mapping[str, Any]]
+        ],
+    ) -> List[Dict[str, Any]]:
+        result: List[Dict[str, Any]] = []
+        for key, items in sorted(
+            groups.items(),
+            key=lambda pair: (
+                pair[0][0],
+                pair[0][1],
+                -1 if pair[0][2] is None else pair[0][2],
+                pair[0][3],
+            ),
         ):
-            values = [item[source_name] for item in items if item[source_name] is not None]
-            if values:
-                mean, std = _mean_std([float(value) for value in values])
-                row[f"{output_name}_mean"] = mean
-                row[f"{output_name}_std"] = std
-            else:
-                row[f"{output_name}_mean"] = None
-                row[f"{output_name}_std"] = None
-        approximation.append(row)
+            generations, dimension, projection, comparison_type = key
+            row = {
+                "generations": generations,
+                "rff_dimension": dimension,
+                "projection_dimension": projection,
+                "comparison_type": comparison_type,
+                "runs": len(items),
+            }
+            for name in ("distance_correlation", "mae", "rmse"):
+                values = [item[name] for item in items if item[name] is not None]
+                if values:
+                    mean, std = _mean_std([float(value) for value in values])
+                    row[f"{name}_mean"] = mean
+                    row[f"{name}_std"] = std
+                else:
+                    row[f"{name}_mean"] = None
+                    row[f"{name}_std"] = None
+            result.append(row)
+        return result
+
+    approximation = aggregate_diagnostics(approximation_groups)
+    projection_approximation = aggregate_diagnostics(projection_groups)
 
     seeds = [summary["seed"] for summary in summaries]
     unique_seed_count = len(set(seeds))
@@ -318,6 +431,7 @@ def aggregate_runs(output_dirs: Sequence[str | Path]) -> Dict[str, Any]:
         "experiment_outputs": [summary["experiment_output"] for summary in summaries],
         "retrieval": retrieval,
         "rff_approximation": approximation,
+        "projection_approximation": projection_approximation,
         "scale_readiness": {
             "ready_for_scale": all(scale_checks.values()),
             "checks": scale_checks,
