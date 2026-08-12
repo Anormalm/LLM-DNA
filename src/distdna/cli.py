@@ -30,12 +30,14 @@ from .demo import create_demo
 from .decoding import build_decoding_report
 from .experiment import run_experiment, validate_experiment
 from .figures import render_figures
+from .planning import estimate_collection
 from .providers import (
     LocalTransformersGenerator,
     inherit_model_revisions,
     resolve_model_revisions,
 )
 from .relationships import build_relationship_report
+from .quality import response_quality_report
 from .summary import aggregate_runs, summarize_run, write_summary
 from .text_demo import create_text_pipeline_demo
 
@@ -129,6 +131,25 @@ def _parser() -> argparse.ArgumentParser:
     reuse.add_argument("--source-cache", type=Path, required=True)
     reuse.add_argument("--target-manifest", type=Path, required=True)
     reuse.add_argument("--target-cache", type=Path, required=True)
+
+    estimate = commands.add_parser(
+        "estimate-collection",
+        help="estimate exact collection cardinality and assumption-bound runtime/storage",
+    )
+    estimate.add_argument("--manifest", type=Path, required=True)
+    estimate.add_argument("--seeds", type=int, default=1)
+    estimate.add_argument("--embedding-dim", type=int, default=768)
+    estimate.add_argument("--embedding-bytes", type=int, default=4)
+    estimate.add_argument("--reuse-cache", type=Path, action="append", default=[])
+    estimate.add_argument("--benchmark-cache", type=Path)
+    estimate.add_argument("--output", type=Path)
+
+    quality = commands.add_parser(
+        "response-quality", help="audit diversity, length, truncation, and throughput"
+    )
+    quality.add_argument("--manifest", type=Path, required=True)
+    quality.add_argument("--cache-dir", type=Path, required=True)
+    quality.add_argument("--output", type=Path)
 
     audit_legacy = commands.add_parser(
         "audit-legacy",
@@ -496,6 +517,39 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.source_cache, manifest, args.target_cache
             )
             print(json.dumps({"status": "complete", **report}, indent=2))
+            return 0
+        if args.command == "estimate-collection":
+            manifest = CollectionManifest.load(args.manifest)
+            report = estimate_collection(
+                manifest,
+                seed_count=args.seeds,
+                embedding_dimension=args.embedding_dim,
+                embedding_bytes=args.embedding_bytes,
+                reuse_cache_dirs=args.reuse_cache,
+                benchmark_cache_dir=args.benchmark_cache,
+            )
+            if args.output is not None:
+                if args.output.exists():
+                    raise FileExistsError(
+                        f"collection estimate already exists; choose a fresh path: {args.output}"
+                    )
+                report = dict(report)
+                report["written_to"] = str(write_summary(report, args.output))
+            print(json.dumps(report, indent=2))
+            return 0
+        if args.command == "response-quality":
+            manifest = CollectionManifest.load(args.manifest)
+            dataset = ResponseCache(args.cache_dir, manifest).dataset
+            dataset.require_complete()
+            report = response_quality_report(dataset)
+            if args.output is not None:
+                if args.output.exists():
+                    raise FileExistsError(
+                        f"quality report already exists; choose a fresh path: {args.output}"
+                    )
+                report = dict(report)
+                report["written_to"] = str(write_summary(report, args.output))
+            print(json.dumps(report, indent=2))
             return 0
         if args.command == "audit-legacy":
             manifest = CollectionManifest.load(args.manifest)

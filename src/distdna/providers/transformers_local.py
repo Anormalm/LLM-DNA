@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gc
 import re
+import time
 from dataclasses import replace
 from typing import Any, Callable, Dict, Mapping
 
@@ -15,6 +16,16 @@ from ..data import (
 )
 
 _COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
+
+
+def _stop_reason(
+    generated_tokens: int, max_new_tokens: int, last_token: int | None, eos_token_id: Any
+) -> str:
+    if eos_token_id is not None and last_token is not None:
+        eos_ids = {eos_token_id} if isinstance(eos_token_id, int) else set(eos_token_id)
+        if last_token in eos_ids:
+            return "eos_token"
+    return "max_new_tokens" if generated_tokens >= max_new_tokens else "other"
 
 
 def _clear_inherited_max_length(model: Any) -> None:
@@ -295,8 +306,12 @@ class LocalTransformersGenerator:
             generation_kwargs.update(
                 {"temperature": setting.temperature, "top_p": setting.top_p}
             )
+        started = time.perf_counter()
         with self._torch.inference_mode():
             output = self._model.generate(**inputs, **generation_kwargs)
+        elapsed_seconds = time.perf_counter() - started
+        generated_tokens = int(output.shape[-1] - prompt_tokens)
+        last_token = int(output[0, -1].item()) if generated_tokens else None
         text = self._tokenizer.decode(
             output[0, prompt_tokens:], skip_special_tokens=True
         ).strip()
@@ -311,5 +326,14 @@ class LocalTransformersGenerator:
                 "dtype": self.dtype_name,
                 "torch_version": self._torch.__version__,
                 "transformers_version": self._transformers.__version__,
+                "prompt_tokens": prompt_tokens,
+                "generated_tokens": generated_tokens,
+                "elapsed_seconds": elapsed_seconds,
+                "stop_reason": _stop_reason(
+                    generated_tokens,
+                    setting.max_new_tokens,
+                    last_token,
+                    self._tokenizer.eos_token_id,
+                ),
             },
         )

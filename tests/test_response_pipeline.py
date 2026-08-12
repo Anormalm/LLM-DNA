@@ -180,6 +180,24 @@ def test_response_reuse_rejects_changed_shared_definitions(tmp_path: Path) -> No
         )
 
 
+def test_response_reuse_rejects_changed_system_prompt(tmp_path: Path) -> None:
+    source_manifest = manifest()
+    collect_responses(source_manifest, CountingGenerator(), tmp_path / "source")
+    target_manifest = CollectionManifest(
+        dataset_id="changed-system-prompt",
+        model_ids=source_manifest.model_ids,
+        settings=source_manifest.settings,
+        prompts=source_manifest.prompts,
+        generations=source_manifest.generations,
+        random_seed=source_manifest.random_seed,
+        metadata={"system_prompt": "A different generation contract."},
+    )
+    with pytest.raises(ValueError, match="system prompts differ"):
+        reuse_compatible_responses(
+            tmp_path / "source", target_manifest, tmp_path / "target"
+        )
+
+
 def test_response_reuse_rejects_one_sided_revision_provenance(tmp_path: Path) -> None:
     source_manifest = manifest()
     collect_responses(source_manifest, CountingGenerator(), tmp_path / "source")

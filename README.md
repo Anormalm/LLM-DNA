@@ -343,6 +343,32 @@ distdna render-figures \
 Six figures are emitted in PDF, SVG, and PNG by default. `figure-manifest.json` records a SHA-256
 for every source report and rendered artifact. Existing figure directories are never overwritten.
 
+## Plan and audit a larger collection
+
+Before a long collection, calculate exact cardinalities and an assumption-bound resource estimate:
+
+```bash
+distdna estimate-collection \
+  --manifest configs/scale-expanded.collection.json \
+  --seeds 3 \
+  --benchmark-cache data/scale-preflight/responses \
+  --output results/scale-estimate.json
+```
+
+Completed preflight caches can be audited for diversity, response length, stop reasons, and measured
+throughput:
+
+```bash
+distdna response-quality \
+  --manifest configs/scale-preflight.collection.json \
+  --cache-dir data/scale-preflight/responses \
+  --output results/scale-preflight-quality.json
+```
+
+The local generator records prompt/generated token counts, elapsed inference time, and stop reason
+with each newly collected response. See `docs/SCALE_PREFLIGHT.md` for the current expanded design,
+bounded preflight findings, and staged go/no-go policy.
+
 ## Output bundle
 
 Every run requires a new output directory and publishes it only after all computations succeed:

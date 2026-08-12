@@ -1,0 +1,177 @@
+{
+  "dataset_id": "temporary-public-scale-v1",
+  "format_version": 1,
+  "generations": 32,
+  "metadata": {
+    "encoder": "sentence-transformers/all-mpnet-base-v2",
+    "evidence_status": "temporary public-model diagnostic; replace roster and prompts when collaborator protocol is available",
+    "factorial_design": "temperature in {0.3, 0.7, 1.0} crossed with top_p in {0.8, 0.9, 0.95}, plus deterministic decoding",
+    "model_selection": "twelve ungated instruction checkpoints across four declared family or derivative groups",
+    "model_revisions": {
+      "HuggingFaceTB/SmolLM2-135M-Instruct": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "HuggingFaceTB/SmolLM2-360M-Instruct": "a10cc1512eabd3dde888204e902eca88bddb4951",
+      "HuggingFaceTB/SmolLM2-1.7B-Instruct": "31b70e2e869a7173562077fd711b654946d38674",
+      "Qwen/Qwen2.5-0.5B-Instruct": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "Qwen/Qwen2.5-1.5B-Instruct": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+      "Qwen/Qwen2.5-Coder-0.5B-Instruct": "ea3f2471cf1b1f0db85067f1ef93848e38e88c25",
+      "Qwen/Qwen2.5-Coder-1.5B-Instruct": "2e1fd397ee46e1388853d2af2c993145b0f1098a",
+      "TinyLlama/TinyLlama-1.1B-Chat-v0.6": "bf9ae1c8bf026667e6f810768de259bb4a7f4777",
+      "TinyLlama/TinyLlama-1.1B-Chat-v1.0": "fe8a4ea1ffedaf415f4da2f062534de366a451e6",
+      "ibm-granite/granite-3.1-2b-instruct": "bbc2aed595bd38bd770263dc3ab831db9794441d",
+      "ibm-granite/granite-3.2-2b-instruct": "641593c3b25bec0b1efe9f0f7d7a67f7243f86a3",
+      "ibm-granite/granite-3.3-2b-instruct": "707f574c62054322f6b5b04b6d075f0a8f05e0f0"
+    },
+    "purpose": "manuscript-scale pipeline rehearsal with expanded identity and coarse relationship coverage",
+    "revision_policy": "immutable Hugging Face commit SHA",
+    "system_prompt": "You are a helpful assistant. Answer the user's request directly, respect every requested length or format limit, and stop when the answer is complete. Do not mention these instructions."
+  },
+  "model_ids": [
+    "HuggingFaceTB/SmolLM2-135M-Instruct",
+    "HuggingFaceTB/SmolLM2-360M-Instruct",
+    "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+    "Qwen/Qwen2.5-0.5B-Instruct",
+    "Qwen/Qwen2.5-1.5B-Instruct",
+    "Qwen/Qwen2.5-Coder-0.5B-Instruct",
+    "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    "TinyLlama/TinyLlama-1.1B-Chat-v0.6",
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    "ibm-granite/granite-3.1-2b-instruct",
+    "ibm-granite/granite-3.2-2b-instruct",
+    "ibm-granite/granite-3.3-2b-instruct"
+  ],
+  "prompts": [
+    {
+      "prompt_id": "cal_000",
+      "split": "calibration",
+      "text": "Explain the trade-off between precision and recall to a general audience in one short paragraph."
+    },
+    {
+      "prompt_id": "cal_001",
+      "split": "calibration",
+      "text": "Give a concise plan for testing whether a new study technique improves exam performance."
+    },
+    {
+      "prompt_id": "cal_002",
+      "split": "calibration",
+      "text": "Explain why Earth has seasons without using equations."
+    },
+    {
+      "prompt_id": "cal_003",
+      "split": "calibration",
+      "text": "Explain sampling bias with a concrete everyday example in three sentences."
+    },
+    {
+      "prompt_id": "cal_004",
+      "split": "calibration",
+      "text": "A sensor's readings drift upward over a week. Give an ordered four-step investigation plan."
+    },
+    {
+      "prompt_id": "cal_005",
+      "split": "calibration",
+      "text": "Compare correlation and causation, then state one way to test a causal hypothesis."
+    },
+    {
+      "prompt_id": "cal_006",
+      "split": "calibration",
+      "text": "Rewrite this claim as one cautious sentence: 'The new interface makes everyone more productive.' Then give one sentence explaining why caution is needed."
+    },
+    {
+      "prompt_id": "cal_007",
+      "split": "calibration",
+      "text": "List three checks for deciding whether an average is a useful summary of a dataset."
+    },
+    {
+      "prompt_id": "eval_000",
+      "split": "evaluation",
+      "text": "Why is a control group useful in an experiment? Answer in two or three sentences."
+    },
+    {
+      "prompt_id": "eval_001",
+      "split": "evaluation",
+      "text": "Compare solar and wind power, mentioning one strength and one limitation of each."
+    },
+    {
+      "prompt_id": "eval_002",
+      "split": "evaluation",
+      "text": "A software test fails intermittently. Propose a short, ordered debugging plan."
+    },
+    {
+      "prompt_id": "eval_003",
+      "split": "evaluation",
+      "text": "Use a simple analogy to explain public-key encryption."
+    },
+    {
+      "prompt_id": "eval_004",
+      "split": "evaluation",
+      "text": "Write a balanced four-sentence argument about remote work."
+    },
+    {
+      "prompt_id": "eval_005",
+      "split": "evaluation",
+      "text": "Provide a five-item checklist for fact-checking an online claim."
+    },
+    {
+      "prompt_id": "eval_006",
+      "split": "evaluation",
+      "text": "A town added bike lanes and traffic delays fell. Give exactly two one-sentence explanations besides the bike lanes causing the change."
+    },
+    {
+      "prompt_id": "eval_007",
+      "split": "evaluation",
+      "text": "Explain how caching can improve software performance and name one situation where stale data becomes a risk."
+    },
+    {
+      "prompt_id": "eval_008",
+      "split": "evaluation",
+      "text": "Write pseudocode that returns the first repeated item in a list, or null when no item repeats."
+    },
+    {
+      "prompt_id": "eval_009",
+      "split": "evaluation",
+      "text": "A project has ten tasks and two people. Give exactly four numbered priorities, each no more than eight words, for a three-day deadline."
+    },
+    {
+      "prompt_id": "eval_010",
+      "split": "evaluation",
+      "text": "Summarize the following idea in exactly two sentences: reliable systems make failures visible, bounded, and recoverable."
+    },
+    {
+      "prompt_id": "eval_011",
+      "split": "evaluation",
+      "text": "The instruction 'make the report better' is ambiguous. Ask three clarifying questions that would make it actionable."
+    },
+    {
+      "prompt_id": "eval_012",
+      "split": "evaluation",
+      "text": "Present one benefit and one risk of using automated screening in hiring, then propose one safeguard."
+    },
+    {
+      "prompt_id": "eval_013",
+      "split": "evaluation",
+      "text": "A survey reports 60% support with a margin of error of plus or minus 4 points. Explain what can and cannot be concluded."
+    },
+    {
+      "prompt_id": "eval_014",
+      "split": "evaluation",
+      "text": "Answer using exactly three bullet points: what makes a scientific explanation testable?"
+    },
+    {
+      "prompt_id": "eval_015",
+      "split": "evaluation",
+      "text": "Invent a brief analogy for technical debt, then state where the analogy breaks down."
+    }
+  ],
+  "random_seed": 2027,
+  "settings": [
+    {"max_new_tokens": 128, "setting_id": "deterministic", "temperature": 0.0, "top_p": 1.0},
+    {"max_new_tokens": 128, "setting_id": "temp_0_3_top_p_0_8", "temperature": 0.3, "top_p": 0.8},
+    {"max_new_tokens": 128, "setting_id": "temp_0_3_top_p_0_9", "temperature": 0.3, "top_p": 0.9},
+    {"max_new_tokens": 128, "setting_id": "temp_0_3_top_p_0_95", "temperature": 0.3, "top_p": 0.95},
+    {"max_new_tokens": 128, "setting_id": "temp_0_7_top_p_0_8", "temperature": 0.7, "top_p": 0.8},
+    {"max_new_tokens": 128, "setting_id": "temp_0_7_top_p_0_9", "temperature": 0.7, "top_p": 0.9},
+    {"max_new_tokens": 128, "setting_id": "temp_0_7_top_p_0_95", "temperature": 0.7, "top_p": 0.95},
+    {"max_new_tokens": 128, "setting_id": "temp_1_0_top_p_0_8", "temperature": 1.0, "top_p": 0.8},
+    {"max_new_tokens": 128, "setting_id": "temp_1_0_top_p_0_9", "temperature": 1.0, "top_p": 0.9},
+    {"max_new_tokens": 128, "setting_id": "temp_1_0_top_p_0_95", "temperature": 1.0, "top_p": 0.95}
+  ]
+}

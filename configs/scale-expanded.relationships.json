@@ -1,0 +1,21 @@
+{
+  "format_version": 1,
+  "groups": {
+    "HuggingFaceTB/SmolLM2-135M-Instruct": "smollm2",
+    "HuggingFaceTB/SmolLM2-360M-Instruct": "smollm2",
+    "HuggingFaceTB/SmolLM2-1.7B-Instruct": "smollm2",
+    "Qwen/Qwen2.5-0.5B-Instruct": "qwen2_5",
+    "Qwen/Qwen2.5-1.5B-Instruct": "qwen2_5",
+    "Qwen/Qwen2.5-Coder-0.5B-Instruct": "qwen2_5",
+    "Qwen/Qwen2.5-Coder-1.5B-Instruct": "qwen2_5",
+    "TinyLlama/TinyLlama-1.1B-Chat-v0.6": "tinyllama_chat",
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0": "tinyllama_chat",
+    "ibm-granite/granite-3.1-2b-instruct": "granite_2b_releases",
+    "ibm-granite/granite-3.2-2b-instruct": "granite_2b_releases",
+    "ibm-granite/granite-3.3-2b-instruct": "granite_2b_releases"
+  },
+  "metadata": {
+    "evidence_status": "coarse public family and derivative labels; diagnostic only",
+    "policy": "Every roster member belongs to exactly one group. Labels encode known family or post-training relationships, not ground-truth behavioral equivalence."
+  }
+}

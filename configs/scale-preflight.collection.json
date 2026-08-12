@@ -1,0 +1,50 @@
+{
+  "dataset_id": "temporary-public-scale-preflight-v1",
+  "format_version": 1,
+  "generations": 4,
+  "metadata": {
+    "evidence_status": "runtime and response-quality preflight only",
+    "model_revisions": {
+      "HuggingFaceTB/SmolLM2-135M-Instruct": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "HuggingFaceTB/SmolLM2-1.7B-Instruct": "31b70e2e869a7173562077fd711b654946d38674",
+      "Qwen/Qwen2.5-0.5B-Instruct": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "TinyLlama/TinyLlama-1.1B-Chat-v1.0": "fe8a4ea1ffedaf415f4da2f062534de366a451e6"
+    },
+    "purpose": "measure sequential MPS throughput and audit new prompt response quality before scale collection",
+    "revision_policy": "immutable Hugging Face commit SHA",
+    "system_prompt": "You are a helpful assistant. Answer the user's request directly, respect every requested length or format limit, and stop when the answer is complete. Do not mention these instructions."
+  },
+  "model_ids": [
+    "HuggingFaceTB/SmolLM2-135M-Instruct",
+    "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+    "Qwen/Qwen2.5-0.5B-Instruct",
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+  ],
+  "prompts": [
+    {
+      "prompt_id": "cal_003",
+      "split": "calibration",
+      "text": "Explain sampling bias with a concrete everyday example in three sentences."
+    },
+    {
+      "prompt_id": "cal_006",
+      "split": "calibration",
+      "text": "Rewrite this claim as one cautious sentence: 'The new interface makes everyone more productive.' Then give one sentence explaining why caution is needed."
+    },
+    {
+      "prompt_id": "eval_006",
+      "split": "evaluation",
+      "text": "A town added bike lanes and traffic delays fell. Give exactly two one-sentence explanations besides the bike lanes causing the change."
+    },
+    {
+      "prompt_id": "eval_009",
+      "split": "evaluation",
+      "text": "A project has ten tasks and two people. Give exactly four numbered priorities, each no more than eight words, for a three-day deadline."
+    }
+  ],
+  "random_seed": 2027,
+  "settings": [
+    {"max_new_tokens": 128, "setting_id": "deterministic", "temperature": 0.0, "top_p": 1.0},
+    {"max_new_tokens": 128, "setting_id": "temp_1_0_top_p_0_95", "temperature": 1.0, "top_p": 0.95}
+  ]
+}

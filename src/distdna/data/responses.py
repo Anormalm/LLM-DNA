@@ -309,6 +309,16 @@ def reuse_compatible_responses(
         if source_settings[setting_id] != target_settings[setting_id]:
             raise ValueError(f"shared decoding setting differs: {setting_id}")
 
+    default_system_prompt = "You are a helpful assistant."
+    source_system_prompt = source_manifest.metadata.get(
+        "system_prompt", default_system_prompt
+    )
+    target_system_prompt = target_manifest.metadata.get(
+        "system_prompt", default_system_prompt
+    )
+    if source_system_prompt != target_system_prompt:
+        raise ValueError("source and target system prompts differ")
+
     source_revisions = source_manifest.metadata.get("model_revisions")
     target_revisions = target_manifest.metadata.get("model_revisions")
     source_has_revisions = isinstance(source_revisions, dict)
@@ -355,6 +365,7 @@ def reuse_compatible_responses(
             if source_has_revisions
             else "not present in either manifest"
         ),
+        "system_prompt_check": "exact match",
     }
 
 

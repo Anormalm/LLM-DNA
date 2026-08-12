@@ -9,7 +9,10 @@ from distdna.providers import (
     inherit_model_revisions,
     resolve_model_revisions,
 )
-from distdna.providers.transformers_local import _clear_inherited_max_length
+from distdna.providers.transformers_local import (
+    _clear_inherited_max_length,
+    _stop_reason,
+)
 
 
 def manifest() -> CollectionManifest:
@@ -98,3 +101,10 @@ def test_local_generator_clears_inherited_max_length() -> None:
 
     assert model.generation_config.max_length is None
     assert model.generation_config.max_new_tokens is None
+
+
+def test_generation_stop_reason_is_explicit() -> None:
+    assert _stop_reason(64, 64, 10, 10) == "eos_token"
+    assert _stop_reason(64, 64, 11, 10) == "max_new_tokens"
+    assert _stop_reason(12, 64, 10, 10) == "eos_token"
+    assert _stop_reason(12, 64, 11, [10, 12]) == "other"
