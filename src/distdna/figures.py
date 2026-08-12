@@ -361,6 +361,7 @@ def _relationship_summary(plt, report: Mapping[str, Any]):
 def render_figures(
     output_dir: str | Path,
     *,
+    retrieval_aggregate_path: str | Path,
     feature_aggregate_path: str | Path,
     projection_aggregate_path: str | Path,
     factorial_aggregate_path: str | Path,
@@ -379,12 +380,14 @@ def render_figures(
     staging = Path(tempfile.mkdtemp(prefix=f".{target.name}-", dir=target.parent))
     sources = {}
     try:
+        retrieval_path, retrieval = _load(retrieval_aggregate_path)
         feature_path, feature = _load(feature_aggregate_path)
         projection_path, projection = _load(projection_aggregate_path)
         factorial_path, factorial = _load(factorial_aggregate_path)
         decoding_path, decoding = _load(decoding_report_path)
         relationship_path, relationship = _load(relationship_report_path)
         sources = {
+            "retrieval_aggregate": retrieval_path,
             "feature_aggregate": feature_path,
             "projection_aggregate": projection_path,
             "factorial_aggregate": factorial_path,
@@ -393,7 +396,7 @@ def render_figures(
         }
         plt = _configure_matplotlib()
         figures = (
-            ("identity-retrieval-scaling", _retrieval_scaling(plt, feature)),
+            ("identity-retrieval-scaling", _retrieval_scaling(plt, retrieval)),
             ("rff-approximation-scaling", _approximation_scaling(plt, feature)),
             ("projection-approximation-scaling", _projection_scaling(plt, projection)),
             ("bandwidth-ablation", _bandwidth_ablation(plt, factorial)),

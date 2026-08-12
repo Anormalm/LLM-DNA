@@ -331,6 +331,7 @@ Install the optional plotting dependency and render a fresh, provenance-hashed b
 ```bash
 python3 -m pip install -e '.[figures]'
 distdna render-figures \
+  --retrieval-aggregate results/grid-aggregate.json \
   --feature-aggregate results/feature-aggregate.json \
   --projection-aggregate results/projection-aggregate.json \
   --factorial-aggregate results/factorial-aggregate.json \

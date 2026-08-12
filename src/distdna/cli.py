@@ -199,6 +199,7 @@ def _parser() -> argparse.ArgumentParser:
     figures = commands.add_parser(
         "render-figures", help="render final paper figures from completed JSON reports"
     )
+    figures.add_argument("--retrieval-aggregate", type=Path, required=True)
     figures.add_argument("--feature-aggregate", type=Path, required=True)
     figures.add_argument("--projection-aggregate", type=Path, required=True)
     figures.add_argument("--factorial-aggregate", type=Path, required=True)
@@ -607,6 +608,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "render-figures":
             output_dir = render_figures(
                 args.output_dir,
+                retrieval_aggregate_path=args.retrieval_aggregate,
                 feature_aggregate_path=args.feature_aggregate,
                 projection_aggregate_path=args.projection_aggregate,
                 factorial_aggregate_path=args.factorial_aggregate,

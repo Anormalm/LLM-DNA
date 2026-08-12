@@ -112,6 +112,7 @@ def test_render_complete_figure_bundle_with_provenance(tmp_path: Path) -> None:
 
     output = render_figures(
         tmp_path / "figures",
+        retrieval_aggregate_path=_write(tmp_path / "retrieval.json", feature),
         feature_aggregate_path=_write(tmp_path / "feature.json", feature),
         projection_aggregate_path=_write(tmp_path / "projection.json", projection),
         factorial_aggregate_path=_write(tmp_path / "factorial.json", factorial),
@@ -120,6 +121,6 @@ def test_render_complete_figure_bundle_with_provenance(tmp_path: Path) -> None:
     )
 
     manifest = json.loads((output / "figure-manifest.json").read_text(encoding="utf-8"))
-    assert len(manifest["sources"]) == 5
+    assert len(manifest["sources"]) == 6
     assert len(manifest["artifacts"]) == 18
     assert all((output / row["filename"]).stat().st_size > 0 for row in manifest["artifacts"])
