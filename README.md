@@ -365,6 +365,16 @@ distdna response-quality \
   --output results/scale-preflight-quality.json
 ```
 
+Long collections can be inspected safely before completion. This command reports durable progress,
+per-model observed truncation/diversity, and an explicitly assumption-bound runtime extrapolation;
+it never claims that an incomplete cache passed the final quality gate:
+
+```bash
+distdna collection-progress \
+  --manifest data/scale-expanded-seed2027/collection.json \
+  --cache-dir data/scale-expanded-seed2027/responses
+```
+
 The local generator records prompt/generated token counts, elapsed inference time, and stop reason
 with each newly collected response. See `docs/SCALE_PREFLIGHT.md` for the current expanded design,
 bounded preflight findings, and staged go/no-go policy.

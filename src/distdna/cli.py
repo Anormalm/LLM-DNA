@@ -37,7 +37,7 @@ from .providers import (
     resolve_model_revisions,
 )
 from .relationships import build_relationship_report
-from .quality import response_quality_report
+from .quality import collection_progress_report, response_quality_report
 from .summary import aggregate_runs, summarize_run, write_summary
 from .text_demo import create_text_pipeline_demo
 
@@ -156,6 +156,14 @@ def _parser() -> argparse.ArgumentParser:
     quality.add_argument("--manifest", type=Path, required=True)
     quality.add_argument("--cache-dir", type=Path, required=True)
     quality.add_argument("--output", type=Path)
+
+    progress = commands.add_parser(
+        "collection-progress",
+        help="audit an incomplete response cache without claiming final quality readiness",
+    )
+    progress.add_argument("--manifest", type=Path, required=True)
+    progress.add_argument("--cache-dir", type=Path, required=True)
+    progress.add_argument("--output", type=Path)
 
     audit_legacy = commands.add_parser(
         "audit-legacy",
@@ -555,6 +563,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                     raise FileExistsError(
                         f"quality report already exists; choose a fresh path: {args.output}"
                     )
+                report = dict(report)
+                report["written_to"] = str(write_summary(report, args.output))
+            print(json.dumps(report, indent=2))
+            return 0
+        if args.command == "collection-progress":
+            manifest = CollectionManifest.load(args.manifest)
+            dataset = ResponseCache(args.cache_dir, manifest).dataset
+            report = collection_progress_report(dataset)
+            if args.output is not None:
                 report = dict(report)
                 report["written_to"] = str(write_summary(report, args.output))
             print(json.dumps(report, indent=2))

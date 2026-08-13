@@ -17,6 +17,150 @@ def _percentile(values: Sequence[float], fraction: float) -> float:
     return float(ordered[index])
 
 
+def _timed_records(records: Sequence[Any]) -> list[Tuple[float, int]]:
+    timed = []
+    for item in records:
+        seconds = item.metadata.get("elapsed_seconds")
+        tokens = item.metadata.get("generated_tokens")
+        if (
+            isinstance(seconds, (int, float))
+            and not isinstance(seconds, bool)
+            and seconds > 0
+            and isinstance(tokens, int)
+            and not isinstance(tokens, bool)
+            and tokens > 0
+        ):
+            timed.append((float(seconds), tokens))
+    return timed
+
+
+def collection_progress_report(dataset: ResponseDataset) -> Dict[str, Any]:
+    """Audit an incomplete append-only cache without claiming final quality readiness."""
+
+    records = dataset.records
+    expected = dataset.expected_count
+    remaining = expected - len(records)
+    cells: Dict[Tuple[str, str, str], list] = defaultdict(list)
+    for record in records:
+        cells[(record.model_id, record.setting_id, record.prompt_id)].append(record)
+    expected_cells_per_model = len(dataset.manifest.settings) * len(dataset.manifest.prompts)
+    expected_records_per_model = expected_cells_per_model * dataset.manifest.generations
+    deterministic_ids = {
+        item.setting_id for item in dataset.manifest.settings if item.temperature == 0
+    }
+
+    model_rows = []
+    for model_id in dataset.manifest.model_ids:
+        model_records = [item for item in records if item.model_id == model_id]
+        model_cells = {
+            key: values for key, values in cells.items() if key[0] == model_id
+        }
+        complete_cells = sum(
+            len(values) == dataset.manifest.generations
+            for values in model_cells.values()
+        )
+        timed = _timed_records(model_records)
+        deterministic_cells = [
+            values
+            for (_, setting_id, _), values in model_cells.items()
+            if setting_id in deterministic_ids
+        ]
+        stochastic_cells = [
+            values
+            for (_, setting_id, _), values in model_cells.items()
+            if setting_id not in deterministic_ids
+        ]
+
+        def mean_unique_ratio(groups: Sequence[Sequence[Any]]) -> float | None:
+            if not groups:
+                return None
+            return statistics.fmean(
+                len({item.response for item in group}) / len(group) for group in groups
+            )
+
+        row: Dict[str, Any] = {
+            "model_id": model_id,
+            "records": len(model_records),
+            "expected_records": expected_records_per_model,
+            "completion_fraction": len(model_records) / expected_records_per_model,
+            "observed_cells": len(model_cells),
+            "complete_cells": complete_cells,
+            "expected_cells": expected_cells_per_model,
+            "truncation_rate_observed": (
+                sum(
+                    item.metadata.get("stop_reason") == "max_new_tokens"
+                    for item in model_records
+                )
+                / len(model_records)
+                if model_records
+                else None
+            ),
+            "deterministic_mean_cell_unique_ratio_observed": mean_unique_ratio(
+                deterministic_cells
+            ),
+            "stochastic_mean_cell_unique_ratio_observed": mean_unique_ratio(
+                stochastic_cells
+            ),
+            "timed_records": len(timed),
+        }
+        if timed:
+            row["aggregate_tokens_per_second_observed"] = sum(
+                item[1] for item in timed
+            ) / sum(item[0] for item in timed)
+            row["seconds_per_record_mean_observed"] = statistics.fmean(
+                item[0] for item in timed
+            )
+        model_rows.append(row)
+
+    timed = _timed_records(records)
+    overall_truncation = (
+        sum(
+            item.metadata.get("stop_reason") == "max_new_tokens" for item in records
+        )
+        / len(records)
+        if records
+        else None
+    )
+    projection = None
+    if timed:
+        mean_seconds = statistics.fmean(item[0] for item in timed)
+        projection = {
+            "basis": "mean measured inference seconds per durable record observed so far",
+            "seconds_per_record_mean_observed": mean_seconds,
+            "remaining_inference_seconds": remaining * mean_seconds,
+            "remaining_inference_hours": remaining * mean_seconds / 3600,
+            "warning": (
+                "Current-model-mix extrapolation only; it excludes model loading, encoding, "
+                "analysis, and future checkpoint speed differences."
+            ),
+        }
+    return {
+        "format_version": 1,
+        "report_kind": "incomplete_collection_progress; not a final quality gate",
+        "manifest_fingerprint": dataset.manifest.fingerprint,
+        "records": len(records),
+        "expected_records": expected,
+        "remaining_records": remaining,
+        "completion_fraction": len(records) / expected,
+        "observed_cells": len(cells),
+        "expected_cells": (
+            len(dataset.manifest.model_ids)
+            * len(dataset.manifest.settings)
+            * len(dataset.manifest.prompts)
+        ),
+        "overall_truncation_rate_observed": overall_truncation,
+        "timed_records": len(timed),
+        "aggregate_tokens_per_second_observed": (
+            sum(item[1] for item in timed) / sum(item[0] for item in timed)
+            if timed
+            else None
+        ),
+        "runtime_projection": projection,
+        "models": model_rows,
+        "final_quality_gate_eligible": dataset.complete,
+    }
+
+
 def response_quality_report(dataset: ResponseDataset) -> Dict[str, Any]:
     """Summarize diversity, length, truncation, and measured generation throughput."""
 
@@ -38,19 +182,7 @@ def response_quality_report(dataset: ResponseDataset) -> Dict[str, Any]:
         unique_ratios = [len({item.response for item in items}) / len(items) for items in cell_records]
         words = [len(item.response.split()) for item in records]
         chars = [len(item.response) for item in records]
-        timed = []
-        for item in records:
-            seconds = item.metadata.get("elapsed_seconds")
-            tokens = item.metadata.get("generated_tokens")
-            if (
-                isinstance(seconds, (int, float))
-                and not isinstance(seconds, bool)
-                and seconds > 0
-                and isinstance(tokens, int)
-                and not isinstance(tokens, bool)
-                and tokens > 0
-            ):
-                timed.append((float(seconds), tokens))
+        timed = _timed_records(records)
         elapsed = [item[0] for item in timed]
         generated_tokens = [item[1] for item in timed]
         truncated = sum(item.metadata.get("stop_reason") == "max_new_tokens" for item in records)

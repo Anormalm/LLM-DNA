@@ -13,7 +13,7 @@ from distdna.data import (
 )
 from distdna.cli import main
 from distdna.planning import estimate_collection
-from distdna.quality import response_quality_report
+from distdna.quality import collection_progress_report, response_quality_report
 
 
 def _manifest(generations: int) -> CollectionManifest:
@@ -104,6 +104,52 @@ def test_response_quality_report_passes_a_complete_diverse_cache(tmp_path: Path)
     assert report["cell_count"] == 8
     assert report["overall"]["timed_records"] == 16
     assert report["ready_for_scale"] is True
+
+
+def test_collection_progress_reports_incomplete_cache_without_gate_claim(
+    tmp_path: Path,
+) -> None:
+    manifest = _manifest(2)
+    complete = _complete_cache(tmp_path / "complete", manifest).dataset
+    partial_cache = ResponseCache(tmp_path / "partial", manifest)
+    for record in complete.records[:5]:
+        partial_cache.append(record)
+
+    report = collection_progress_report(partial_cache.dataset)
+
+    assert report["records"] == 5
+    assert report["expected_records"] == 16
+    assert report["remaining_records"] == 11
+    assert report["completion_fraction"] == 5 / 16
+    assert report["final_quality_gate_eligible"] is False
+    assert report["runtime_projection"]["remaining_inference_seconds"] == 5.5
+    assert sum(row["records"] for row in report["models"]) == 5
+
+
+def test_collection_progress_cli_accepts_incomplete_cache(tmp_path: Path) -> None:
+    manifest = _manifest(2)
+    manifest_path = manifest.save(tmp_path / "collection.json")
+    complete = _complete_cache(tmp_path / "complete", manifest).dataset
+    partial_path = tmp_path / "partial"
+    partial_cache = ResponseCache(partial_path, manifest)
+    partial_cache.append(complete.records[0])
+    output = tmp_path / "progress.json"
+
+    assert (
+        main(
+            [
+                "collection-progress",
+                "--manifest",
+                str(manifest_path),
+                "--cache-dir",
+                str(partial_path),
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+    assert output.is_file()
 
 
 def test_planning_and_quality_cli_write_reports(tmp_path: Path) -> None:
