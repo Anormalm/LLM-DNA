@@ -26,6 +26,7 @@ from .data import (
     build_embedding_datasets,
     collect_responses,
     reuse_compatible_responses,
+    set_uniform_token_limit,
     save_embedding_datasets,
 )
 from .demo import create_demo
@@ -167,6 +168,14 @@ def _parser() -> argparse.ArgumentParser:
         type=int,
         default=10,
         help="report every N durable response records",
+    )
+    collect_local.add_argument(
+        "--abort-model-truncation-threshold",
+        type=float,
+        help=(
+            "stop once any model cannot mathematically finish at or below "
+            "this truncation rate; durable records remain resumable"
+        ),
     )
 
     reuse = commands.add_parser(
@@ -570,22 +579,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 raise ValueError("max-new-tokens must be a positive integer")
             if not args.dataset_id.strip():
                 raise ValueError("dataset-id must be non-empty")
-            previous_limits = sorted(
-                {setting.max_new_tokens for setting in manifest.settings}
-            )
-            if previous_limits == [args.max_new_tokens]:
-                raise ValueError("new token limit must differ from the source manifest")
-            metadata = dict(manifest.metadata)
-            metadata["parent_manifest_fingerprint"] = manifest.fingerprint
-            metadata["parent_max_new_tokens"] = previous_limits
-            adjusted = replace(
+            adjusted = set_uniform_token_limit(
                 manifest,
-                dataset_id=args.dataset_id.strip(),
-                settings=tuple(
-                    replace(setting, max_new_tokens=args.max_new_tokens)
-                    for setting in manifest.settings
-                ),
-                metadata=metadata,
+                max_new_tokens=args.max_new_tokens,
+                dataset_id=args.dataset_id,
             )
             written = adjusted.save(args.output.resolve())
             print(
@@ -698,7 +695,13 @@ def main(argv: Sequence[str] | None = None) -> int:
 
             try:
                 responses = collect_responses(
-                    manifest, generator, args.cache_dir, progress=report
+                    manifest,
+                    generator,
+                    args.cache_dir,
+                    progress=report,
+                    abort_model_truncation_threshold=(
+                        args.abort_model_truncation_threshold
+                    ),
                 )
             finally:
                 generator.close()

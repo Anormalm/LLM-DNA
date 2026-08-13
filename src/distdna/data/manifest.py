@@ -7,7 +7,7 @@ import json
 import math
 import os
 import tempfile
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
@@ -228,3 +228,34 @@ class CollectionManifest:
             random_seed=payload.get("random_seed", 2027),
             metadata=metadata,
         )
+
+
+def set_uniform_token_limit(
+    manifest: CollectionManifest, *, max_new_tokens: int, dataset_id: str
+) -> CollectionManifest:
+    """Clone a manifest with one token ceiling and explicit parent provenance."""
+
+    if (
+        not isinstance(max_new_tokens, int)
+        or isinstance(max_new_tokens, bool)
+        or max_new_tokens <= 0
+    ):
+        raise ValueError("max_new_tokens must be a positive integer")
+    if not isinstance(dataset_id, str) or not dataset_id.strip():
+        raise ValueError("dataset_id must be a non-empty string")
+    previous_limits = sorted({item.max_new_tokens for item in manifest.settings})
+    if previous_limits == [max_new_tokens]:
+        raise ValueError("new token limit must differ from the source manifest")
+    metadata = dict(manifest.metadata)
+    metadata["parent_manifest_fingerprint"] = manifest.fingerprint
+    metadata["parent_dataset_id"] = manifest.dataset_id
+    metadata["parent_max_new_tokens"] = previous_limits
+    return replace(
+        manifest,
+        dataset_id=dataset_id.strip(),
+        settings=tuple(
+            replace(setting, max_new_tokens=max_new_tokens)
+            for setting in manifest.settings
+        ),
+        metadata=metadata,
+    )

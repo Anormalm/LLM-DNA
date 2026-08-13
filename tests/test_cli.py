@@ -370,6 +370,7 @@ def test_set_token_limit_preserves_factorial_and_records_parent(tmp_path: Path) 
     assert adjusted.model_ids == source.model_ids
     assert adjusted.prompts == source.prompts
     assert adjusted.metadata["parent_manifest_fingerprint"] == source.fingerprint
+    assert adjusted.metadata["parent_dataset_id"] == source.dataset_id
     assert adjusted.metadata["parent_max_new_tokens"] == [128]
 
 

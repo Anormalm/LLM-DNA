@@ -56,6 +56,14 @@ class ProvenanceGenerator:
         )
 
 
+class TruncatingGenerator:
+    def generate(self, model_id, prompt, setting, seed):
+        return GeneratedResponse(
+            text="truncated response",
+            metadata={"stop_reason": "max_new_tokens"},
+        )
+
+
 def test_manifest_round_trip_and_seed_are_stable(tmp_path: Path) -> None:
     original = manifest()
     path = original.save(tmp_path / "collection.json")
@@ -135,6 +143,55 @@ def test_generated_response_provenance_is_persisted(tmp_path: Path) -> None:
     assert responses.records[0].metadata["model_revision"] == "a" * 40
     loaded = ResponseCache(tmp_path / "responses", collection).dataset
     assert loaded.records == responses.records
+
+
+def test_collection_aborts_only_after_model_gate_becomes_impossible(
+    tmp_path: Path,
+) -> None:
+    collection = manifest()
+    cache_dir = tmp_path / "responses"
+
+    with pytest.raises(RuntimeError, match="mathematically impossible"):
+        collect_responses(
+            collection,
+            TruncatingGenerator(),
+            cache_dir,
+            abort_model_truncation_threshold=0.25,
+        )
+
+    partial = ResponseCache(cache_dir, collection).dataset
+    assert len(partial.records) == 5
+    assert {record.model_id for record in partial.records} == {"m0"}
+
+
+def test_collection_rejects_a_failed_model_when_failure_occurs_at_completion(
+    tmp_path: Path,
+) -> None:
+    collection = manifest()
+    cache_dir = tmp_path / "responses"
+
+    with pytest.raises(RuntimeError, match="mathematically impossible"):
+        collect_responses(
+            collection,
+            TruncatingGenerator(),
+            cache_dir,
+            abort_model_truncation_threshold=0.99,
+        )
+
+    partial = ResponseCache(cache_dir, collection).dataset
+    assert len(partial.records) == 18
+    assert {record.model_id for record in partial.records} == {"m0"}
+
+
+@pytest.mark.parametrize("threshold", [-0.1, 1.1, True])
+def test_collection_rejects_invalid_abort_threshold(tmp_path: Path, threshold) -> None:
+    with pytest.raises(ValueError, match="between 0 and 1"):
+        collect_responses(
+            manifest(),
+            CountingGenerator(),
+            tmp_path / "responses",
+            abort_model_truncation_threshold=threshold,
+        )
 
 
 def test_compatible_responses_can_seed_an_expanded_collection(tmp_path: Path) -> None:

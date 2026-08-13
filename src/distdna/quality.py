@@ -9,6 +9,9 @@ from typing import Any, Dict, Mapping, Sequence, Tuple
 from .data import ResponseDataset
 
 
+TRUNCATION_THRESHOLD = 0.25
+
+
 def _percentile(values: Sequence[float], fraction: float) -> float:
     ordered = sorted(values)
     if not ordered:
@@ -34,6 +37,29 @@ def _timed_records(records: Sequence[Any]) -> list[Tuple[float, int]]:
     return timed
 
 
+def _truncation_gate_forecast(
+    *, truncated_records: int, observed_records: int, expected_records: int
+) -> Dict[str, Any]:
+    """Return an exact feasibility forecast for the fixed truncation gate."""
+
+    remaining = expected_records - observed_records
+    maximum_truncated = expected_records * TRUNCATION_THRESHOLD
+    remaining_budget = maximum_truncated - truncated_records
+    return {
+        "threshold": TRUNCATION_THRESHOLD,
+        "truncated_records_observed": truncated_records,
+        "maximum_truncated_records": maximum_truncated,
+        "remaining_truncation_budget": remaining_budget,
+        "final_truncation_rate_lower_bound": truncated_records / expected_records,
+        "gate_still_mathematically_achievable": remaining_budget >= 0,
+        "maximum_remaining_truncation_rate_to_pass": (
+            min(1.0, max(0.0, remaining_budget / remaining))
+            if remaining
+            else None
+        ),
+    }
+
+
 def collection_progress_report(dataset: ResponseDataset) -> Dict[str, Any]:
     """Audit an incomplete append-only cache without claiming final quality readiness."""
 
@@ -52,6 +78,10 @@ def collection_progress_report(dataset: ResponseDataset) -> Dict[str, Any]:
     model_rows = []
     for model_id in dataset.manifest.model_ids:
         model_records = [item for item in records if item.model_id == model_id]
+        model_truncated_records = sum(
+            item.metadata.get("stop_reason") == "max_new_tokens"
+            for item in model_records
+        )
         model_cells = {
             key: values for key, values in cells.items() if key[0] == model_id
         }
@@ -87,13 +117,14 @@ def collection_progress_report(dataset: ResponseDataset) -> Dict[str, Any]:
             "complete_cells": complete_cells,
             "expected_cells": expected_cells_per_model,
             "truncation_rate_observed": (
-                sum(
-                    item.metadata.get("stop_reason") == "max_new_tokens"
-                    for item in model_records
-                )
-                / len(model_records)
+                model_truncated_records / len(model_records)
                 if model_records
                 else None
+            ),
+            "truncation_gate_forecast": _truncation_gate_forecast(
+                truncated_records=model_truncated_records,
+                observed_records=len(model_records),
+                expected_records=expected_records_per_model,
             ),
             "deterministic_mean_cell_unique_ratio_observed": mean_unique_ratio(
                 deterministic_cells
@@ -122,21 +153,11 @@ def collection_progress_report(dataset: ResponseDataset) -> Dict[str, Any]:
         if records
         else None
     )
-    truncation_limit = expected * 0.25
-    remaining_truncation_budget = truncation_limit - truncated_records
-    gate_forecast = {
-        "threshold": 0.25,
-        "truncated_records_observed": truncated_records,
-        "maximum_truncated_records": truncation_limit,
-        "remaining_truncation_budget": remaining_truncation_budget,
-        "final_truncation_rate_lower_bound": truncated_records / expected,
-        "gate_still_mathematically_achievable": remaining_truncation_budget >= 0,
-        "maximum_remaining_truncation_rate_to_pass": (
-            min(1.0, max(0.0, remaining_truncation_budget / remaining))
-            if remaining
-            else None
-        ),
-    }
+    gate_forecast = _truncation_gate_forecast(
+        truncated_records=truncated_records,
+        observed_records=len(records),
+        expected_records=expected,
+    )
     projection = None
     if timed:
         mean_seconds = statistics.fmean(item[0] for item in timed)
@@ -278,9 +299,9 @@ def response_quality_report(dataset: ResponseDataset) -> Dict[str, Any]:
             item.metadata.get("stop_reason") == "max_new_tokens" for item in dataset.records
         )
         / len(dataset.records)
-        <= 0.25,
+        <= TRUNCATION_THRESHOLD,
         "every_model_truncation_rate_at_most_25_percent": all(
-            row["truncation_rate"] <= 0.25 for row in model_rows
+            row["truncation_rate"] <= TRUNCATION_THRESHOLD for row in model_rows
         ),
     }
     return {

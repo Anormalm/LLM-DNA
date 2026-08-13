@@ -1,10 +1,11 @@
 # Expanded public-model preflight
 
 Status: end-to-end retrieval plumbing and checkpoint compatibility are verified. The original v1
-response protocol fails the strengthened per-model truncation gate and is frozen. The v2 protocol
-preserves the model roster, semantic tasks, decoding factorial, seeds, and analysis plan while
-making every prompt's existing concise-answer intent measurable. Its all-roster sentinel must pass
-before any full v2 seed is collected.
+response protocol fails the strengthened per-model truncation gate and is frozen. The bounded-prompt
+v2 protocol fixes seven completed model blocks but still fails TinyLlama v0.6 at the 128-token
+ceiling. A 256-token escalation also fails early. The accepted v3 protocol changes only the uniform
+ceiling to 512 tokens after a complete 720-response high-risk preflight passed all three selected
+models. Its complete 12-model sentinel must pass before any full v3 seed is collected.
 
 All results here are engineering diagnostics from a temporary public roster, not manuscript
 evidence.
@@ -18,11 +19,12 @@ one shared RFF map, optional fixed projection, same-setting and cross-setting re
 planned generation-count, RFF-dimension, projection, bandwidth, normalization, and seed analyses.
 
 The manuscript does not prescribe a response-generation token ceiling. The temporary local
-collection keeps `max_new_tokens=128`, logs the stop reason for every response, and treats the ceiling
+collection uses `max_new_tokens=512`, logs the stop reason for every response, and treats the ceiling
 as a censoring boundary: both the overall cohort and every individual model must have at most 25%
-hard-limit stops. Changing prompt text creates a new manifest fingerprint and cache namespace.
+hard-limit stops. Changing prompt text or the token ceiling creates a new manifest fingerprint and
+cache namespace.
 
-## Expanded v2 protocol
+## Expanded v3 protocol
 
 - Roster: 12 pinned public instruction checkpoints in four declared groups: SmolLM2, Qwen 2.5,
   TinyLlama Chat, and Granite 2B releases.
@@ -31,7 +33,7 @@ hard-limit stops. Changing prompt text creates a new manifest fingerprint and ca
   explicit through tracked, ID-keyed revisions.
 - Decoding: deterministic plus the full `3 x 3` temperature/top-p factorial.
 - Collection: 32 generations per model/setting/prompt cell and three independent seeds.
-- Response limit: 128 new tokens, with explicit prompt contracts and stop-reason logging.
+- Response limit: 512 new tokens, with explicit prompt contracts and stop-reason logging.
 - Encoder/reference: MPNet 768, exact biased RBF-MMD, and unprojected RFFTrace `D=512`.
 - Compact evaluation: retain `L=1024` and `L=2048` as explicit comparisons.
 - Quality gate: complete cache, every cell present, stable deterministic cells, diverse stochastic
@@ -40,10 +42,12 @@ hard-limit stops. Changing prompt text creates a new manifest fingerprint and ca
 
 The v1 manifest fingerprint is
 `d1c20caf208cd29f5c9c1a10e3d3c2b7182cbb9a43bbf0e3be908e70f31941c5`. The derived v2
-manifest fingerprint is
-`51b6c05ebd9bd27ffd17e3a3717599ba90df8690089024ba8e10f9f89b51b532`. The v2 loader
-re-derives that manifest from the tracked v1 manifest and prompt-revision file on every run and
-fails closed on any mismatch. Every model remains pinned to the same 40-character Hub commit.
+prompt-bounded fingerprint is
+`51b6c05ebd9bd27ffd17e3a3717599ba90df8690089024ba8e10f9f89b51b532`, and the accepted v3
+fingerprint is `14e2d2812b5c7b2f44f82ec3fac90d41e45b214b87c4d4b44da64f5bc8d68ee2`.
+The runner re-derives v2 from v1 plus the tracked prompt revisions, then re-derives v3 from v2 with
+the uniform 512-token transform. It fails closed on either mismatch. Every model remains pinned to
+the same 40-character Hub commit.
 
 ## What the v1 preflights established
 
@@ -82,20 +86,40 @@ effect. Continuing the v1 sentinel would spend compute without changing the comp
 decision.
 
 The partially collected v1 seed 2027 cache remains frozen at 3,999 durable records. All v1 caches
-are retained for audit but are never reused by v2 because prompt definitions changed.
+are retained for audit but are never reused by v2 or v3 because prompt definitions changed.
 
-## V2 execution and gates
+## Token-ceiling escalation
+
+The bounded-prompt v2 sentinel was stopped at 1,929 of 2,880 records after TinyLlama v0.6
+completed at 70.0% truncation, making its per-model gate irrecoverable. The seven preceding complete
+blocks passed individually: 16.25%, 5.00%, 0.83%, 18.33%, 0.83%, 21.67%, and 6.25%. The partial
+TinyLlama v1.0 block is not treated as a result.
+
+A targeted 256-token sentinel retained the exact v2 prompts, settings, seed, and pinned revisions
+for TinyLlama v0.6, TinyLlama v1.0, and Granite 3.2. It was stopped at 150 records after TinyLlama
+v0.6 accumulated 64 truncations, already exceeding the final allowance of 60 in its 240-record
+block.
+
+The corresponding 512-token high-risk sentinel completed all 720 responses. Overall truncation was
+5.00%; TinyLlama v0.6 was 7.08%, TinyLlama v1.0 was 7.92%, and Granite 3.2 was 0.00%. This is the
+empirical basis for v3. It does not substitute for the complete all-roster sentinel, but all 720
+records are exactly compatible and are reused there without regeneration.
+
+## V3 execution and gates
 
 The exact full design still requires 92,160 responses per seed and 276,480 across three seeds. The
-earlier mixed-model benchmark projected roughly 164 central sequential MPS hours and 258 hours
-under the conservative per-call projection. Those are planning estimates, not completion claims;
-the v2 sentinel supplies a new checkpoint-specific runtime basis.
+earlier 128-token mixed-model benchmark projected roughly 164 central sequential MPS hours and 258
+hours under the conservative per-call projection. Those are obsolete planning bounds, not v3
+completion claims. The complete v3 sentinel supplies the all-roster 512-token runtime basis before
+seed collection.
 
 The runner performs the following fail-closed sequence:
 
-1. Collect the complete 2,880-cell v2 sentinel.
+1. Reuse the 720 exact high-risk records and collect the remaining cells in the complete 2,880-cell
+   v3 sentinel.
 2. Require both overall and every-model truncation to be at most 25%.
-3. Collect seed 2027 and require the full response-quality gate.
+3. Reuse the sentinel's exact generation-zero records in seed 2027, collect the remainder, and
+   require the full response-quality gate.
 4. Encode and run R/D, projection, bandwidth, and normalization analyses.
 5. Repeat independently for seeds 2028 and 2029 only after each preceding gate passes.
 6. Aggregate seeds, build decoding and relationship reports, and render a provenance-hashed figure
@@ -107,15 +131,14 @@ The complete resumable command is:
 caffeinate -dimsu .venv/bin/python scripts/run_scale_program.py
 ```
 
-The v2 manifest can be independently regenerated at a fresh path with:
+The v3 manifest can be independently regenerated at a fresh path with:
 
 ```bash
-distdna revise-manifest \
-  --manifest configs/scale-expanded.collection.json \
-  --prompt-revisions configs/scale-expanded.prompt-revisions.json \
-  --dataset-id temporary-public-scale-v2 \
-  --require-all-prompts \
-  --output /tmp/scale-expanded-v2.collection.json
+distdna set-token-limit \
+  --manifest configs/scale-expanded-v2.collection.json \
+  --max-new-tokens 512 \
+  --dataset-id temporary-public-scale-v3 \
+  --output /tmp/scale-expanded-v3.collection.json
 ```
 
 The sentinel estimates truncation and checkpoint-specific runtime. With one response per cell, it
@@ -138,6 +161,18 @@ cannot test within-cell stochastic diversity and is never a substitute for the c
   `56cc96d38aa7699667ba43c2fb417d2c3d66aca0ede8544ad07c728ec6cf05f6`
 - V2 manifest file SHA-256:
   `22203fc5f211620308c6b2a23c640f160632103d96a9dddef306d87577d45b01`
+- V2 failed sentinel: `results/scale-expanded-v2-sentinel-failed.json`
+- V2 failed sentinel SHA-256:
+  `c1cf0b03df7dd57697704bd38d5aa20aa3977524ec77ae50beb2ce9c74f561a3`
+- 256-token failed preflight: `results/scale-expanded-v3-token-256-failed.json`
+- 256-token failed preflight SHA-256:
+  `e9960ff8c3bf3528d9dc1c88d5fe09b56ecd90a27231f9870e4e8689b9d7a57f`
+- 512-token complete high-risk preflight:
+  `results/scale-expanded-v4-token-preflight-final.json`
+- 512-token complete high-risk preflight SHA-256:
+  `339bbdceea10d5523ff5d5ba08847daab15b1067ef92d54988406e3856d8c291`
+- V3 manifest file SHA-256:
+  `4a4b1b3c0711736879dd8feb1df2447a265fc65965ccd3ea6592964fc7a98b03`
 - Final v1 cost estimate: `results/scale-expanded-final-v2-estimate.json`
 - Final v1 cost-estimate SHA-256:
   `2b1774845b613f5dac8457af4114c1c0dd037a371261a78a2c8052af4e07b3d9`

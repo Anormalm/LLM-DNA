@@ -14,7 +14,12 @@ from .legacy import (
     import_llm_dna_responses,
     load_model_aliases,
 )
-from .manifest import CollectionManifest, DecodingSetting, Prompt
+from .manifest import (
+    CollectionManifest,
+    DecodingSetting,
+    Prompt,
+    set_uniform_token_limit,
+)
 from .revisions import PromptRevisionSet, apply_prompt_revisions
 from .pipeline import build_embedding_datasets, save_embedding_datasets
 from .responses import (
@@ -59,4 +64,5 @@ __all__ = [
     "load_model_aliases",
     "require_disjoint_prompts",
     "save_embedding_datasets",
+    "set_uniform_token_limit",
 ]

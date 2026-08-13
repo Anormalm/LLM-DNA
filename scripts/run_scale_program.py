@@ -17,6 +17,7 @@ from distdna.data import (
     CollectionManifest,
     PromptRevisionSet,
     apply_prompt_revisions,
+    set_uniform_token_limit,
 )
 
 
@@ -32,14 +33,16 @@ METHODS = (
     "exact_mmd",
     "rfftrace",
 )
-PROTOCOL_PREFIX = "scale-expanded-v2"
-SOURCE_DATASET_ID = "temporary-public-scale-v2"
-SENTINEL_DATASET_ID = "temporary-public-scale-sentinel-v2"
+PROTOCOL_PREFIX = "scale-expanded-v3"
+PROMPT_PROTOCOL_DATASET_ID = "temporary-public-scale-v2"
+SOURCE_DATASET_ID = "temporary-public-scale-v3"
+SENTINEL_DATASET_ID = "temporary-public-scale-sentinel-v3"
+MAX_NEW_TOKENS = 512
 TRUNCATION_THRESHOLD = 0.25
 
 
 def _protocol_manifest(root: Path) -> CollectionManifest:
-    """Load v2 and prove it is exactly derivable from v1 plus tracked revisions."""
+    """Load v3 and prove the tracked prompt and token transforms exactly."""
 
     base = CollectionManifest.load(root / "configs" / "scale-expanded.collection.json")
     revisions = PromptRevisionSet.load(
@@ -48,17 +51,29 @@ def _protocol_manifest(root: Path) -> CollectionManifest:
     expected = apply_prompt_revisions(
         base,
         revisions,
-        dataset_id=SOURCE_DATASET_ID,
+        dataset_id=PROMPT_PROTOCOL_DATASET_ID,
         require_all_prompts=True,
     )
-    tracked = CollectionManifest.load(
+    tracked_v2 = CollectionManifest.load(
         root / "configs" / "scale-expanded-v2.collection.json"
     )
-    if tracked.fingerprint != expected.fingerprint:
+    if tracked_v2.fingerprint != expected.fingerprint:
         raise RuntimeError(
             "tracked v2 manifest is not the exact result of the v1 prompt revisions"
         )
-    return tracked
+    expected_v3 = set_uniform_token_limit(
+        tracked_v2,
+        max_new_tokens=MAX_NEW_TOKENS,
+        dataset_id=SOURCE_DATASET_ID,
+    )
+    tracked_v3 = CollectionManifest.load(
+        root / "configs" / "scale-expanded-v3.collection.json"
+    )
+    if tracked_v3.fingerprint != expected_v3.fingerprint:
+        raise RuntimeError(
+            "tracked v3 manifest is not the exact 512-token transform of v2"
+        )
+    return tracked_v3
 
 
 def _write_json_exact(path: Path, payload: Mapping[str, Any]) -> None:
@@ -295,24 +310,36 @@ def _require_sentinel_report_ready(
     return float(truncation)
 
 
-def _sentinel_gate(root: Path, cli: Path, env: Mapping[str, str]) -> None:
+def _sentinel_gate(
+    root: Path, cli: Path, env: Mapping[str, str]
+) -> dict[str, Any]:
     sentinel = _materialize_sentinel(root)
-    source_cache = root / "data" / f"{PROTOCOL_PREFIX}-seed2027" / "responses"
-    if (source_cache / "manifest.json").is_file():
-        _run(
-            [
-                str(cli),
-                "reuse-responses",
-                "--source-cache",
-                str(source_cache),
-                "--target-manifest",
-                str(sentinel["manifest"]),
-                "--target-cache",
-                str(sentinel["cache"]),
-            ],
-            env=env,
-            stage="reuse generation-zero records for scale sentinel",
-        )
+    reuse_sources = (
+        (
+            root / "data" / "scale-expanded-v4-token-preflight" / "responses",
+            "reuse exact high-risk preflight records for scale sentinel",
+        ),
+        (
+            root / "data" / f"{PROTOCOL_PREFIX}-seed2027" / "responses",
+            "reuse generation-zero seed records for scale sentinel",
+        ),
+    )
+    for source_cache, stage in reuse_sources:
+        if (source_cache / "manifest.json").is_file():
+            _run(
+                [
+                    str(cli),
+                    "reuse-responses",
+                    "--source-cache",
+                    str(source_cache),
+                    "--target-manifest",
+                    str(sentinel["manifest"]),
+                    "--target-cache",
+                    str(sentinel["cache"]),
+                ],
+                env=env,
+                stage=stage,
+            )
     response_file = sentinel["cache"] / "responses.jsonl"
     completed = 0
     if response_file.is_file():
@@ -334,6 +361,8 @@ def _sentinel_gate(root: Path, cli: Path, env: Mapping[str, str]) -> None:
                 "--local-files-only",
                 "--progress-every",
                 "100",
+                "--abort-model-truncation-threshold",
+                str(TRUNCATION_THRESHOLD),
             ],
             env=env,
             stage=f"all-cell scale sentinel ({completed}/{sentinel['expected_records']})",
@@ -365,6 +394,7 @@ def _sentinel_gate(root: Path, cli: Path, env: Mapping[str, str]) -> None:
         f"overall={truncation:.4f} <= 0.2500",
         flush=True,
     )
+    return sentinel
 
 
 def _quality_ready(path: Path, fingerprint: str) -> bool:
@@ -433,15 +463,30 @@ def main() -> int:
     _materialize_sentinel(root)
     if args.prepare_only:
         print(
-            "Expanded v2 sentinel, three-seed manifests, and analysis configs are ready."
+            "Expanded v3 sentinel, three-seed manifests, and analysis configs are ready."
         )
         return 0
 
-    _sentinel_gate(root, cli, env)
+    sentinel = _sentinel_gate(root, cli, env)
 
     for seed in SEEDS:
         run = runs[seed]
         manifest = CollectionManifest.load(run["manifest"])
+        if seed == _protocol_manifest(root).random_seed:
+            _run(
+                [
+                    str(cli),
+                    "reuse-responses",
+                    "--source-cache",
+                    str(sentinel["cache"]),
+                    "--target-manifest",
+                    str(run["manifest"]),
+                    "--target-cache",
+                    str(run["response_cache"]),
+                ],
+                env=env,
+                stage="reuse sentinel generation-zero records for seed 2027",
+            )
         response_file = run["response_cache"] / "responses.jsonl"
         completed = 0
         if response_file.is_file():
@@ -469,6 +514,8 @@ def main() -> int:
                     "--local-files-only",
                     "--progress-every",
                     str(args.progress_every),
+                    "--abort-model-truncation-threshold",
+                    str(TRUNCATION_THRESHOLD),
                 ],
                 env=env,
                 stage=f"collect seed {seed} ({completed}/{expected_records})",
@@ -619,7 +666,7 @@ def main() -> int:
             env=env,
             stage="final figures",
         )
-    print("\nExpanded v2 three-seed program complete.", flush=True)
+    print("\nExpanded v3 three-seed program complete.", flush=True)
     return 0
 
 

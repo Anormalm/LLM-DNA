@@ -374,8 +374,16 @@ def collect_responses(
     generator: ResponseGenerator,
     cache_dir: str | Path,
     progress: Callable[[int, int, ResponseRecord], None] | None = None,
+    abort_model_truncation_threshold: float | None = None,
 ) -> ResponseDataset:
     """Collect every missing response and safely resume an existing cache."""
+
+    if abort_model_truncation_threshold is not None and not (
+        isinstance(abort_model_truncation_threshold, (int, float))
+        and not isinstance(abort_model_truncation_threshold, bool)
+        and 0 <= abort_model_truncation_threshold <= 1
+    ):
+        raise ValueError("abort model truncation threshold must be between 0 and 1")
 
     cache = ResponseCache(cache_dir, manifest)
     existing = cache.dataset.by_key
@@ -383,6 +391,33 @@ def collect_responses(
     settings = {setting.setting_id: setting for setting in manifest.settings}
     total = cache.dataset.expected_count
     completed = len(existing)
+    expected_per_model = (
+        len(manifest.settings) * len(manifest.prompts) * manifest.generations
+    )
+    model_observed = {model_id: 0 for model_id in manifest.model_ids}
+    model_truncated = {model_id: 0 for model_id in manifest.model_ids}
+    for record in existing.values():
+        model_observed[record.model_id] += 1
+        model_truncated[record.model_id] += (
+            record.metadata.get("stop_reason") == "max_new_tokens"
+        )
+
+    def require_model_gate_achievable(model_id: str) -> None:
+        if abort_model_truncation_threshold is None:
+            return
+        maximum_truncated = (
+            expected_per_model * abort_model_truncation_threshold
+        )
+        if model_truncated[model_id] > maximum_truncated:
+            raise RuntimeError(
+                "collection stopped because the per-model truncation gate is "
+                f"mathematically impossible: {model_id} has "
+                f"{model_truncated[model_id]} truncated records, above the maximum "
+                f"{maximum_truncated:g} of {expected_per_model}"
+            )
+
+    for model_id in manifest.model_ids:
+        require_model_gate_achievable(model_id)
     for model_id, setting_id, prompt_id, generation_index in expected_response_keys(manifest):
         key = (model_id, setting_id, prompt_id, generation_index)
         if key in existing:
@@ -423,8 +458,13 @@ def collect_responses(
         cache.append(record)
         existing[key] = record
         completed += 1
+        model_observed[model_id] += 1
+        model_truncated[model_id] += (
+            record.metadata.get("stop_reason") == "max_new_tokens"
+        )
         if progress is not None:
             progress(completed, total, record)
+        require_model_gate_achievable(model_id)
     result = cache.dataset
     result.require_complete()
     return result

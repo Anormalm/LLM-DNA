@@ -4,9 +4,22 @@ from pathlib import Path
 import pytest
 
 from scripts.run_scale_program import (
+    MAX_NEW_TOKENS,
     _quality_ready,
+    _protocol_manifest,
     _require_sentinel_report_ready,
 )
+
+
+def test_tracked_v3_protocol_is_exactly_derivable() -> None:
+    root = Path(__file__).resolve().parents[1]
+    manifest = _protocol_manifest(root)
+
+    assert manifest.dataset_id == "temporary-public-scale-v3"
+    assert {setting.max_new_tokens for setting in manifest.settings} == {
+        MAX_NEW_TOKENS
+    }
+    assert manifest.metadata["parent_max_new_tokens"] == [128]
 
 
 def _sentinel_report(*, overall: float = 0.25, m0: float = 0.25) -> dict:
