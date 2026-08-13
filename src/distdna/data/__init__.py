@@ -15,6 +15,7 @@ from .legacy import (
     load_model_aliases,
 )
 from .manifest import CollectionManifest, DecodingSetting, Prompt
+from .revisions import PromptRevisionSet, apply_prompt_revisions
 from .pipeline import build_embedding_datasets, save_embedding_datasets
 from .responses import (
     CallableResponseGenerator,
@@ -39,6 +40,7 @@ __all__ = [
     "LegacyAuditReport",
     "GeneratedResponse",
     "Prompt",
+    "PromptRevisionSet",
     "ResponseCache",
     "ResponseDataset",
     "ResponseEncoder",
@@ -48,6 +50,7 @@ __all__ = [
     "CallableResponseGenerator",
     "build_embedding_datasets",
     "audit_llm_dna_responses",
+    "apply_prompt_revisions",
     "collect_responses",
     "generation_seed",
     "reuse_compatible_responses",

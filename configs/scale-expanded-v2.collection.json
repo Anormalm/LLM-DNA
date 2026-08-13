@@ -1,0 +1,260 @@
+{
+  "dataset_id": "temporary-public-scale-v2",
+  "format_version": 1,
+  "generations": 32,
+  "metadata": {
+    "encoder": "sentence-transformers/all-mpnet-base-v2",
+    "evidence_status": "temporary public-model diagnostic; replace roster and prompts when collaborator protocol is available",
+    "factorial_design": "temperature in {0.3, 0.7, 1.0} crossed with top_p in {0.8, 0.9, 0.95}, plus deterministic decoding",
+    "model_revisions": {
+      "HuggingFaceTB/SmolLM2-1.7B-Instruct": "31b70e2e869a7173562077fd711b654946d38674",
+      "HuggingFaceTB/SmolLM2-135M-Instruct": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "HuggingFaceTB/SmolLM2-360M-Instruct": "a10cc1512eabd3dde888204e902eca88bddb4951",
+      "Qwen/Qwen2.5-0.5B-Instruct": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "Qwen/Qwen2.5-1.5B-Instruct": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+      "Qwen/Qwen2.5-Coder-0.5B-Instruct": "ea3f2471cf1b1f0db85067f1ef93848e38e88c25",
+      "Qwen/Qwen2.5-Coder-1.5B-Instruct": "2e1fd397ee46e1388853d2af2c993145b0f1098a",
+      "TinyLlama/TinyLlama-1.1B-Chat-v0.6": "bf9ae1c8bf026667e6f810768de259bb4a7f4777",
+      "TinyLlama/TinyLlama-1.1B-Chat-v1.0": "fe8a4ea1ffedaf415f4da2f062534de366a451e6",
+      "ibm-granite/granite-3.1-2b-instruct": "bbc2aed595bd38bd770263dc3ab831db9794441d",
+      "ibm-granite/granite-3.2-2b-instruct": "641593c3b25bec0b1efe9f0f7d7a67f7243f86a3",
+      "ibm-granite/granite-3.3-2b-instruct": "707f574c62054322f6b5b04b6d075f0a8f05e0f0"
+    },
+    "model_selection": "twelve ungated instruction checkpoints across four declared family or derivative groups",
+    "parent_dataset_id": "temporary-public-scale-v1",
+    "parent_manifest_fingerprint": "d1c20caf208cd29f5c9c1a10e3d3c2b7182cbb9a43bbf0e3be908e70f31941c5",
+    "prompt_revision": {
+      "changed_prompt_ids": [
+        "cal_000",
+        "cal_001",
+        "cal_002",
+        "cal_003",
+        "cal_004",
+        "cal_005",
+        "cal_006",
+        "cal_007",
+        "eval_000",
+        "eval_001",
+        "eval_002",
+        "eval_003",
+        "eval_004",
+        "eval_005",
+        "eval_006",
+        "eval_007",
+        "eval_008",
+        "eval_009",
+        "eval_010",
+        "eval_011",
+        "eval_012",
+        "eval_013",
+        "eval_014",
+        "eval_015"
+      ],
+      "fingerprint": "3a172af8316cbc3799f3f9224592bbbcba12850718a3b4ef2b62344f2e8da693",
+      "reason": "Preserve every semantic task while making the existing concise response intent measurable, reducing hard-limit censoring before distributional comparison.",
+      "revision_id": "scale-expanded-v2-bounded-responses"
+    },
+    "purpose": "manuscript-scale pipeline rehearsal with expanded identity and coarse relationship coverage",
+    "revision_policy": "immutable Hugging Face commit SHA",
+    "system_prompt": "You are a helpful assistant. Answer the user's request directly, respect every requested length or format limit, and stop when the answer is complete. Do not mention these instructions."
+  },
+  "model_ids": [
+    "HuggingFaceTB/SmolLM2-135M-Instruct",
+    "HuggingFaceTB/SmolLM2-360M-Instruct",
+    "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+    "Qwen/Qwen2.5-0.5B-Instruct",
+    "Qwen/Qwen2.5-1.5B-Instruct",
+    "Qwen/Qwen2.5-Coder-0.5B-Instruct",
+    "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    "TinyLlama/TinyLlama-1.1B-Chat-v0.6",
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    "ibm-granite/granite-3.1-2b-instruct",
+    "ibm-granite/granite-3.2-2b-instruct",
+    "ibm-granite/granite-3.3-2b-instruct"
+  ],
+  "prompts": [
+    {
+      "prompt_id": "cal_000",
+      "split": "calibration",
+      "text": "Explain the trade-off between precision and recall to a general audience in one paragraph of at most 70 words."
+    },
+    {
+      "prompt_id": "cal_001",
+      "split": "calibration",
+      "text": "Give exactly four numbered steps for testing whether a new study technique improves exam performance. Use at most 12 words per step."
+    },
+    {
+      "prompt_id": "cal_002",
+      "split": "calibration",
+      "text": "Explain why Earth has seasons in exactly three sentences and at most 60 words total. Do not use equations."
+    },
+    {
+      "prompt_id": "cal_003",
+      "split": "calibration",
+      "text": "Explain sampling bias with one concrete everyday example in exactly three sentences and at most 60 words total."
+    },
+    {
+      "prompt_id": "cal_004",
+      "split": "calibration",
+      "text": "A sensor's readings drift upward over a week. Give exactly four numbered investigation steps, using at most 12 words per step."
+    },
+    {
+      "prompt_id": "cal_005",
+      "split": "calibration",
+      "text": "Compare correlation and causation, then state one way to test a causal hypothesis. Use exactly three sentences and at most 60 words total."
+    },
+    {
+      "prompt_id": "cal_006",
+      "split": "calibration",
+      "text": "Rewrite this claim as one cautious sentence: 'The new interface makes everyone more productive.' Then give one sentence explaining why caution is needed. Use at most 50 words total."
+    },
+    {
+      "prompt_id": "cal_007",
+      "split": "calibration",
+      "text": "List exactly three checks for deciding whether an average is a useful summary of a dataset. Use at most 12 words per check."
+    },
+    {
+      "prompt_id": "eval_000",
+      "split": "evaluation",
+      "text": "Why is a control group useful in an experiment? Answer in two or three sentences and at most 60 words total."
+    },
+    {
+      "prompt_id": "eval_001",
+      "split": "evaluation",
+      "text": "Compare solar and wind power using exactly four bullet points: one strength and one limitation for each. Use at most 12 words per bullet."
+    },
+    {
+      "prompt_id": "eval_002",
+      "split": "evaluation",
+      "text": "A software test fails intermittently. Give exactly four numbered debugging steps, using at most 12 words per step."
+    },
+    {
+      "prompt_id": "eval_003",
+      "split": "evaluation",
+      "text": "Use a simple analogy to explain public-key encryption in exactly three sentences and at most 60 words total."
+    },
+    {
+      "prompt_id": "eval_004",
+      "split": "evaluation",
+      "text": "Write a balanced argument about remote work in exactly four sentences and at most 80 words total."
+    },
+    {
+      "prompt_id": "eval_005",
+      "split": "evaluation",
+      "text": "Provide exactly five bullet points for fact-checking an online claim. Use at most 10 words per bullet."
+    },
+    {
+      "prompt_id": "eval_006",
+      "split": "evaluation",
+      "text": "A town added bike lanes and traffic delays fell. Give exactly two alternative one-sentence explanations besides the bike lanes causing the change. Use at most 25 words per explanation."
+    },
+    {
+      "prompt_id": "eval_007",
+      "split": "evaluation",
+      "text": "Explain how caching can improve software performance and name one situation where stale data becomes a risk. Use exactly three sentences and at most 70 words total."
+    },
+    {
+      "prompt_id": "eval_008",
+      "split": "evaluation",
+      "text": "Write pseudocode that returns the first repeated item in a list, or null when no item repeats. Use at most eight lines and provide no explanation."
+    },
+    {
+      "prompt_id": "eval_009",
+      "split": "evaluation",
+      "text": "For a project with ten tasks, two people, and a three-day deadline, give exactly four numbered priorities, each no more than eight words."
+    },
+    {
+      "prompt_id": "eval_010",
+      "split": "evaluation",
+      "text": "Summarize the following idea in exactly two sentences and at most 50 words total: reliable systems make failures visible, bounded, and recoverable."
+    },
+    {
+      "prompt_id": "eval_011",
+      "split": "evaluation",
+      "text": "The instruction 'make the report better' is ambiguous. Ask exactly three clarifying questions, each one sentence, that would make it actionable."
+    },
+    {
+      "prompt_id": "eval_012",
+      "split": "evaluation",
+      "text": "Present one benefit and one risk of using automated screening in hiring, then propose one safeguard. Use exactly three bullet points and at most 15 words per bullet."
+    },
+    {
+      "prompt_id": "eval_013",
+      "split": "evaluation",
+      "text": "A survey reports 60% support with a margin of error of plus or minus 4 points. Explain what can and cannot be concluded in exactly three sentences and at most 70 words total."
+    },
+    {
+      "prompt_id": "eval_014",
+      "split": "evaluation",
+      "text": "Answer using exactly three bullet points: what makes a scientific explanation testable? Use at most 12 words per bullet."
+    },
+    {
+      "prompt_id": "eval_015",
+      "split": "evaluation",
+      "text": "Invent a brief analogy for technical debt, then state where the analogy breaks down. Use exactly two sentences and at most 50 words total."
+    }
+  ],
+  "random_seed": 2027,
+  "settings": [
+    {
+      "max_new_tokens": 128,
+      "setting_id": "deterministic",
+      "temperature": 0.0,
+      "top_p": 1.0
+    },
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_0_3_top_p_0_8",
+      "temperature": 0.3,
+      "top_p": 0.8
+    },
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_0_3_top_p_0_9",
+      "temperature": 0.3,
+      "top_p": 0.9
+    },
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_0_3_top_p_0_95",
+      "temperature": 0.3,
+      "top_p": 0.95
+    },
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_0_7_top_p_0_8",
+      "temperature": 0.7,
+      "top_p": 0.8
+    },
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_0_7_top_p_0_9",
+      "temperature": 0.7,
+      "top_p": 0.9
+    },
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_0_7_top_p_0_95",
+      "temperature": 0.7,
+      "top_p": 0.95
+    },
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_1_0_top_p_0_8",
+      "temperature": 1.0,
+      "top_p": 0.8
+    },
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_1_0_top_p_0_9",
+      "temperature": 1.0,
+      "top_p": 0.9
+    },
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_1_0_top_p_0_95",
+      "temperature": 1.0,
+      "top_p": 0.95
+    }
+  ]
+}

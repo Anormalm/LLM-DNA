@@ -232,6 +232,33 @@ def response_quality_report(dataset: ResponseDataset) -> Dict[str, Any]:
 
     deterministic = [row for row in setting_rows if row["temperature"] == 0]
     stochastic = [row for row in setting_rows if row["temperature"] > 0]
+    model_rows = []
+    for model_id in dataset.manifest.model_ids:
+        records = [item for item in dataset.records if item.model_id == model_id]
+        model_cells = [
+            items for (cell_model, _, _), items in cells.items() if cell_model == model_id
+        ]
+        words = [len(item.response.split()) for item in records]
+        timed = _timed_records(records)
+        truncated = sum(
+            item.metadata.get("stop_reason") == "max_new_tokens" for item in records
+        )
+        model_rows.append(
+            {
+                "model_id": model_id,
+                "records": len(records),
+                "cells": len(model_cells),
+                "word_count_median": statistics.median(words),
+                "word_count_p90": _percentile(words, 0.9),
+                "truncation_rate": truncated / len(records),
+                "timed_records": len(timed),
+                "aggregate_tokens_per_second": (
+                    sum(item[1] for item in timed) / sum(item[0] for item in timed)
+                    if timed
+                    else None
+                ),
+            }
+        )
     checks: Mapping[str, bool] = {
         "cache_complete": dataset.complete,
         "all_cells_present": len(cells)
@@ -252,9 +279,12 @@ def response_quality_report(dataset: ResponseDataset) -> Dict[str, Any]:
         )
         / len(dataset.records)
         <= 0.25,
+        "every_model_truncation_rate_at_most_25_percent": all(
+            row["truncation_rate"] <= 0.25 for row in model_rows
+        ),
     }
     return {
-        "format_version": 1,
+        "format_version": 2,
         "manifest_fingerprint": dataset.manifest.fingerprint,
         "records": len(dataset.records),
         "expected_records": dataset.expected_count,
@@ -271,6 +301,7 @@ def response_quality_report(dataset: ResponseDataset) -> Dict[str, Any]:
             ),
         },
         "settings": setting_rows,
+        "models": model_rows,
         "checks": checks,
         "ready_for_scale": all(checks.values()),
     }

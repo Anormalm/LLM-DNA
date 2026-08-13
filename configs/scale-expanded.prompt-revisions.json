@@ -1,0 +1,31 @@
+{
+  "format_version": 1,
+  "reason": "Preserve every semantic task while making the existing concise response intent measurable, reducing hard-limit censoring before distributional comparison.",
+  "revision_id": "scale-expanded-v2-bounded-responses",
+  "revisions": {
+    "cal_000": "Explain the trade-off between precision and recall to a general audience in one paragraph of at most 70 words.",
+    "cal_001": "Give exactly four numbered steps for testing whether a new study technique improves exam performance. Use at most 12 words per step.",
+    "cal_002": "Explain why Earth has seasons in exactly three sentences and at most 60 words total. Do not use equations.",
+    "cal_003": "Explain sampling bias with one concrete everyday example in exactly three sentences and at most 60 words total.",
+    "cal_004": "A sensor's readings drift upward over a week. Give exactly four numbered investigation steps, using at most 12 words per step.",
+    "cal_005": "Compare correlation and causation, then state one way to test a causal hypothesis. Use exactly three sentences and at most 60 words total.",
+    "cal_006": "Rewrite this claim as one cautious sentence: 'The new interface makes everyone more productive.' Then give one sentence explaining why caution is needed. Use at most 50 words total.",
+    "cal_007": "List exactly three checks for deciding whether an average is a useful summary of a dataset. Use at most 12 words per check.",
+    "eval_000": "Why is a control group useful in an experiment? Answer in two or three sentences and at most 60 words total.",
+    "eval_001": "Compare solar and wind power using exactly four bullet points: one strength and one limitation for each. Use at most 12 words per bullet.",
+    "eval_002": "A software test fails intermittently. Give exactly four numbered debugging steps, using at most 12 words per step.",
+    "eval_003": "Use a simple analogy to explain public-key encryption in exactly three sentences and at most 60 words total.",
+    "eval_004": "Write a balanced argument about remote work in exactly four sentences and at most 80 words total.",
+    "eval_005": "Provide exactly five bullet points for fact-checking an online claim. Use at most 10 words per bullet.",
+    "eval_006": "A town added bike lanes and traffic delays fell. Give exactly two alternative one-sentence explanations besides the bike lanes causing the change. Use at most 25 words per explanation.",
+    "eval_007": "Explain how caching can improve software performance and name one situation where stale data becomes a risk. Use exactly three sentences and at most 70 words total.",
+    "eval_008": "Write pseudocode that returns the first repeated item in a list, or null when no item repeats. Use at most eight lines and provide no explanation.",
+    "eval_009": "For a project with ten tasks, two people, and a three-day deadline, give exactly four numbered priorities, each no more than eight words.",
+    "eval_010": "Summarize the following idea in exactly two sentences and at most 50 words total: reliable systems make failures visible, bounded, and recoverable.",
+    "eval_011": "The instruction 'make the report better' is ambiguous. Ask exactly three clarifying questions, each one sentence, that would make it actionable.",
+    "eval_012": "Present one benefit and one risk of using automated screening in hiring, then propose one safeguard. Use exactly three bullet points and at most 15 words per bullet.",
+    "eval_013": "A survey reports 60% support with a margin of error of plus or minus 4 points. Explain what can and cannot be concluded in exactly three sentences and at most 70 words total.",
+    "eval_014": "Answer using exactly three bullet points: what makes a scientific explanation testable? Use at most 12 words per bullet.",
+    "eval_015": "Invent a brief analogy for technical debt, then state where the analogy breaks down. Use exactly two sentences and at most 50 words total."
+  }
+}

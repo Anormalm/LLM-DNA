@@ -103,7 +103,29 @@ def test_response_quality_report_passes_a_complete_diverse_cache(tmp_path: Path)
     assert report["records"] == 16
     assert report["cell_count"] == 8
     assert report["overall"]["timed_records"] == 16
+    assert len(report["models"]) == 2
+    assert report["checks"]["every_model_truncation_rate_at_most_25_percent"] is True
     assert report["ready_for_scale"] is True
+
+
+def test_response_quality_rejects_hidden_per_model_truncation(tmp_path: Path) -> None:
+    manifest = _manifest(2)
+    complete = _complete_cache(tmp_path / "complete", manifest).dataset
+    cache = ResponseCache(tmp_path / "censored", manifest)
+    for record in complete.records:
+        metadata = dict(record.metadata)
+        if record.model_id == "m0" and record.prompt_id == "c0":
+            metadata["stop_reason"] = "max_new_tokens"
+        cache.append(replace(record, metadata=metadata))
+
+    report = response_quality_report(cache.dataset)
+
+    assert report["overall"]["timed_records"] == 16
+    assert report["models"][0]["truncation_rate"] == 0.5
+    assert report["models"][1]["truncation_rate"] == 0.0
+    assert report["checks"]["overall_truncation_rate_at_most_25_percent"] is True
+    assert report["checks"]["every_model_truncation_rate_at_most_25_percent"] is False
+    assert report["ready_for_scale"] is False
 
 
 def test_collection_progress_reports_incomplete_cache_without_gate_claim(

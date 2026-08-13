@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from distdna.cli import main
@@ -211,6 +212,113 @@ def test_resize_manifest_rejects_invalid_or_unchanged_generations(tmp_path: Path
                     "sentinel-test",
                     "--output",
                     str(tmp_path / f"sentinel-{generations}.json"),
+                ]
+            )
+            == 2
+        )
+
+
+def test_revise_manifest_changes_only_prompt_text_and_records_provenance(
+    tmp_path: Path,
+) -> None:
+    source = CollectionManifest(
+        dataset_id="source-test",
+        model_ids=("m0",),
+        settings=(DecodingSetting("sample", 0.7, 0.9, 32),),
+        prompts=(
+            Prompt("c0", "calibration", "calibration"),
+            Prompt("e0", "evaluation", "evaluation"),
+        ),
+        generations=4,
+        metadata={"model_revisions": {"m0": "a" * 40}},
+    )
+    source_path = source.save(tmp_path / "source.json")
+    revision_path = tmp_path / "revisions.json"
+    revision_path.write_text(
+        json.dumps(
+            {
+                "format_version": 1,
+                "revision_id": "bounded-v2",
+                "reason": "make response length measurable",
+                "revisions": {
+                    "c0": "Calibration in exactly two sentences.",
+                    "e0": "Evaluation in exactly two sentences.",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "revised.json"
+
+    assert (
+        main(
+            [
+                "revise-manifest",
+                "--manifest",
+                str(source_path),
+                "--prompt-revisions",
+                str(revision_path),
+                "--dataset-id",
+                "revised-test",
+                "--require-all-prompts",
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+    revised = CollectionManifest.load(output)
+    assert revised.dataset_id == "revised-test"
+    assert revised.model_ids == source.model_ids
+    assert revised.settings == source.settings
+    assert revised.generations == source.generations
+    assert revised.random_seed == source.random_seed
+    assert [item.prompt_id for item in revised.prompts] == ["c0", "e0"]
+    assert [item.split for item in revised.prompts] == ["calibration", "evaluation"]
+    assert revised.metadata["parent_manifest_fingerprint"] == source.fingerprint
+    assert revised.metadata["prompt_revision"]["changed_prompt_ids"] == ["c0", "e0"]
+
+
+def test_revise_manifest_rejects_unknown_or_missing_prompt_ids(tmp_path: Path) -> None:
+    source = CollectionManifest(
+        dataset_id="source-test",
+        model_ids=("m0",),
+        settings=(DecodingSetting("sample", 0.7, 0.9),),
+        prompts=(
+            Prompt("c0", "calibration", "calibration"),
+            Prompt("e0", "evaluation", "evaluation"),
+        ),
+        generations=2,
+    )
+    source_path = source.save(tmp_path / "source.json")
+    for label, revisions in (
+        ("unknown", {"c0": "changed", "e0": "also changed", "other": "bad"}),
+        ("missing", {"c0": "changed"}),
+    ):
+        revision_path = tmp_path / f"{label}.json"
+        revision_path.write_text(
+            json.dumps(
+                {
+                    "revision_id": label,
+                    "reason": "test rejection",
+                    "revisions": revisions,
+                }
+            ),
+            encoding="utf-8",
+        )
+        assert (
+            main(
+                [
+                    "revise-manifest",
+                    "--manifest",
+                    str(source_path),
+                    "--prompt-revisions",
+                    str(revision_path),
+                    "--dataset-id",
+                    f"{label}-test",
+                    "--require-all-prompts",
+                    "--output",
+                    str(tmp_path / f"{label}-output.json"),
                 ]
             )
             == 2

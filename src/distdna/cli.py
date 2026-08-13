@@ -16,11 +16,13 @@ from .data import (
     CollectionManifest,
     EmbeddingDataset,
     HashingResponseEncoder,
+    PromptRevisionSet,
     audit_llm_dna_responses,
     import_llm_dna_responses,
     load_model_aliases,
     ResponseCache,
     SentenceTransformerResponseEncoder,
+    apply_prompt_revisions,
     build_embedding_datasets,
     collect_responses,
     reuse_compatible_responses,
@@ -121,6 +123,16 @@ def _parser() -> argparse.ArgumentParser:
     resize_manifest.add_argument("--generations", type=int, required=True)
     resize_manifest.add_argument("--dataset-id", required=True)
     resize_manifest.add_argument("--output", type=Path, required=True)
+
+    revise_manifest = commands.add_parser(
+        "revise-manifest",
+        help="clone a manifest with validated text-only prompt revisions and provenance",
+    )
+    revise_manifest.add_argument("--manifest", type=Path, required=True)
+    revise_manifest.add_argument("--prompt-revisions", type=Path, required=True)
+    revise_manifest.add_argument("--dataset-id", required=True)
+    revise_manifest.add_argument("--require-all-prompts", action="store_true")
+    revise_manifest.add_argument("--output", type=Path, required=True)
 
     collect_local = commands.add_parser(
         "collect-local", help="collect a manifest with sequential local Transformers models"
@@ -525,6 +537,34 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "generations": resized.generations,
                         "manifest_fingerprint": resized.fingerprint,
                         "parent_manifest_fingerprint": manifest.fingerprint,
+                    },
+                    indent=2,
+                )
+            )
+            return 0
+        if args.command == "revise-manifest":
+            if args.output.exists():
+                raise FileExistsError(
+                    f"revised manifest already exists; choose a fresh path: {args.output}"
+                )
+            manifest = CollectionManifest.load(args.manifest)
+            revision_set = PromptRevisionSet.load(args.prompt_revisions)
+            revised = apply_prompt_revisions(
+                manifest,
+                revision_set,
+                dataset_id=args.dataset_id,
+                require_all_prompts=args.require_all_prompts,
+            )
+            written = revised.save(args.output.resolve())
+            print(
+                json.dumps(
+                    {
+                        "status": "complete",
+                        "output": str(written),
+                        "manifest_fingerprint": revised.fingerprint,
+                        "parent_manifest_fingerprint": manifest.fingerprint,
+                        "prompt_revision_fingerprint": revision_set.fingerprint,
+                        "changed_prompts": len(revision_set.revisions),
                     },
                     indent=2,
                 )

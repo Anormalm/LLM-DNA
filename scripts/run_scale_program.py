@@ -13,7 +13,11 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, Mapping
 
-from distdna.data import CollectionManifest
+from distdna.data import (
+    CollectionManifest,
+    PromptRevisionSet,
+    apply_prompt_revisions,
+)
 
 
 SEEDS = (2027, 2028, 2029)
@@ -28,6 +32,33 @@ METHODS = (
     "exact_mmd",
     "rfftrace",
 )
+PROTOCOL_PREFIX = "scale-expanded-v2"
+SOURCE_DATASET_ID = "temporary-public-scale-v2"
+SENTINEL_DATASET_ID = "temporary-public-scale-sentinel-v2"
+TRUNCATION_THRESHOLD = 0.25
+
+
+def _protocol_manifest(root: Path) -> CollectionManifest:
+    """Load v2 and prove it is exactly derivable from v1 plus tracked revisions."""
+
+    base = CollectionManifest.load(root / "configs" / "scale-expanded.collection.json")
+    revisions = PromptRevisionSet.load(
+        root / "configs" / "scale-expanded.prompt-revisions.json"
+    )
+    expected = apply_prompt_revisions(
+        base,
+        revisions,
+        dataset_id=SOURCE_DATASET_ID,
+        require_all_prompts=True,
+    )
+    tracked = CollectionManifest.load(
+        root / "configs" / "scale-expanded-v2.collection.json"
+    )
+    if tracked.fingerprint != expected.fingerprint:
+        raise RuntimeError(
+            "tracked v2 manifest is not the exact result of the v1 prompt revisions"
+        )
+    return tracked
 
 
 def _write_json_exact(path: Path, payload: Mapping[str, Any]) -> None:
@@ -65,7 +96,7 @@ def _base_experiment(
     normalization: str = "l2",
     bandwidth_multiplier: float = 1.0,
 ) -> dict[str, Any]:
-    seed_data = root / "data" / f"scale-expanded-seed{seed}"
+    seed_data = root / "data" / f"{PROTOCOL_PREFIX}-seed{seed}"
     return {
         "data": {
             "calibration": str(seed_data / "embeddings" / "calibration.npz"),
@@ -92,10 +123,10 @@ def _base_experiment(
 
 
 def _materialize(root: Path) -> dict[int, dict[str, Any]]:
-    source = CollectionManifest.load(root / "configs" / "scale-expanded.collection.json")
+    source = _protocol_manifest(root)
     runs: dict[int, dict[str, Any]] = {}
     for seed in SEEDS:
-        seed_data = root / "data" / f"scale-expanded-seed{seed}"
+        seed_data = root / "data" / f"{PROTOCOL_PREFIX}-seed{seed}"
         manifest_path = seed_data / "collection.json"
         if seed == source.random_seed:
             manifest = source
@@ -113,8 +144,8 @@ def _materialize(root: Path) -> dict[int, dict[str, Any]]:
             manifest.save(manifest_path)
 
         config_dir = seed_data / "configs"
-        grid_output = root / "results" / f"scale-expanded-grid-seed{seed}"
-        projection_output = root / "results" / f"scale-expanded-projection-seed{seed}"
+        grid_output = root / "results" / f"{PROTOCOL_PREFIX}-grid-seed{seed}"
+        projection_output = root / "results" / f"{PROTOCOL_PREFIX}-projection-seed{seed}"
         grid_config = config_dir / "grid.json"
         projection_config = config_dir / "projection.json"
         _write_json_exact(
@@ -145,7 +176,7 @@ def _materialize(root: Path) -> dict[int, dict[str, Any]]:
                 output = (
                     root
                     / "results"
-                    / "scale-expanded-factorial"
+                    / f"{PROTOCOL_PREFIX}-factorial"
                     / f"seed{seed}-norm-{normalization}-bw-{token}"
                 )
                 config = config_dir / f"factorial-norm-{normalization}-bw-{token}.json"
@@ -167,7 +198,7 @@ def _materialize(root: Path) -> dict[int, dict[str, Any]]:
             "manifest": manifest_path,
             "response_cache": seed_data / "responses",
             "embeddings": seed_data / "embeddings",
-            "quality": root / "results" / f"scale-expanded-quality-seed{seed}.json",
+            "quality": root / "results" / f"{PROTOCOL_PREFIX}-quality-seed{seed}.json",
             "grid_config": grid_config,
             "grid_output": grid_output,
             "projection_config": projection_config,
@@ -179,7 +210,7 @@ def _materialize(root: Path) -> dict[int, dict[str, Any]]:
 
 
 def _materialize_sentinel(root: Path) -> dict[str, Any]:
-    source = CollectionManifest.load(root / "configs" / "scale-expanded.collection.json")
+    source = _protocol_manifest(root)
     metadata = dict(source.metadata)
     metadata["parent_manifest_fingerprint"] = source.fingerprint
     metadata["parent_generations"] = source.generations
@@ -188,11 +219,11 @@ def _materialize_sentinel(root: Path) -> dict[str, Any]:
     )
     sentinel = replace(
         source,
-        dataset_id="temporary-public-scale-sentinel-v1",
+        dataset_id=SENTINEL_DATASET_ID,
         generations=1,
         metadata=metadata,
     )
-    data_dir = root / "data" / "scale-expanded-sentinel"
+    data_dir = root / "data" / f"{PROTOCOL_PREFIX}-sentinel"
     manifest_path = data_dir / "collection.json"
     if manifest_path.exists():
         existing = CollectionManifest.load(manifest_path)
@@ -204,7 +235,7 @@ def _materialize_sentinel(root: Path) -> dict[str, Any]:
     return {
         "manifest": manifest_path,
         "cache": data_dir / "responses",
-        "report": root / "results" / "scale-expanded-sentinel-progress.json",
+        "report": root / "results" / f"{PROTOCOL_PREFIX}-sentinel-progress.json",
         "fingerprint": sentinel.fingerprint,
         "expected_records": (
             len(sentinel.model_ids)
@@ -215,9 +246,58 @@ def _materialize_sentinel(root: Path) -> dict[str, Any]:
     }
 
 
+def _require_sentinel_report_ready(
+    report: Mapping[str, Any],
+    *,
+    fingerprint: str,
+    expected_records: int,
+    model_ids: tuple[str, ...],
+) -> float:
+    """Validate completeness plus overall and per-model truncation gates."""
+
+    if report.get("manifest_fingerprint") != fingerprint:
+        raise RuntimeError("scale sentinel report manifest differs")
+    if report.get("records") != expected_records:
+        raise RuntimeError("scale sentinel report is incomplete")
+    if report.get("final_quality_gate_eligible") is not True:
+        raise RuntimeError("scale sentinel report is not eligible for a final gate")
+    truncation = report.get("overall_truncation_rate_observed")
+    if not isinstance(truncation, (int, float)) or isinstance(truncation, bool):
+        raise RuntimeError("scale sentinel report has no numeric truncation rate")
+    if truncation > TRUNCATION_THRESHOLD:
+        raise RuntimeError(
+            "scale sentinel failed the overall truncation gate: "
+            f"{truncation:.4f} > {TRUNCATION_THRESHOLD:.4f}"
+        )
+    model_rows = report.get("models")
+    if not isinstance(model_rows, list):
+        raise RuntimeError("scale sentinel report has no per-model rows")
+    if any(not isinstance(row, dict) for row in model_rows):
+        raise RuntimeError("scale sentinel report has an invalid per-model row")
+    row_ids = [row.get("model_id") for row in model_rows]
+    if len(row_ids) != len(set(row_ids)) or set(row_ids) != set(model_ids):
+        raise RuntimeError("scale sentinel report model roster differs")
+    by_model = {row["model_id"]: row for row in model_rows}
+    failures = []
+    for model_id in model_ids:
+        row = by_model[model_id]
+        rate = row.get("truncation_rate_observed")
+        if row.get("completion_fraction") != 1.0:
+            failures.append(f"{model_id}=incomplete")
+        elif not isinstance(rate, (int, float)) or isinstance(rate, bool):
+            failures.append(f"{model_id}=missing")
+        elif rate > TRUNCATION_THRESHOLD:
+            failures.append(f"{model_id}={rate:.4f}")
+    if failures:
+        raise RuntimeError(
+            "scale sentinel failed per-model truncation gate: " + ", ".join(failures)
+        )
+    return float(truncation)
+
+
 def _sentinel_gate(root: Path, cli: Path, env: Mapping[str, str]) -> None:
     sentinel = _materialize_sentinel(root)
-    source_cache = root / "data" / "scale-expanded-seed2027" / "responses"
+    source_cache = root / "data" / f"{PROTOCOL_PREFIX}-seed2027" / "responses"
     if (source_cache / "manifest.json").is_file():
         _run(
             [
@@ -258,37 +338,31 @@ def _sentinel_gate(root: Path, cli: Path, env: Mapping[str, str]) -> None:
             env=env,
             stage=f"all-cell scale sentinel ({completed}/{sentinel['expected_records']})",
         )
-    if not sentinel["report"].is_file():
-        _run(
-            [
-                str(cli),
-                "collection-progress",
-                "--manifest",
-                str(sentinel["manifest"]),
-                "--cache-dir",
-                str(sentinel["cache"]),
-                "--output",
-                str(sentinel["report"]),
-            ],
-            env=env,
-            stage="scale sentinel report",
-        )
+    _run(
+        [
+            str(cli),
+            "collection-progress",
+            "--manifest",
+            str(sentinel["manifest"]),
+            "--cache-dir",
+            str(sentinel["cache"]),
+            "--output",
+            str(sentinel["report"]),
+        ],
+        env=env,
+        stage="scale sentinel report",
+    )
     with sentinel["report"].open("r", encoding="utf-8") as stream:
         report = json.load(stream)
-    if report.get("manifest_fingerprint") != sentinel["fingerprint"]:
-        raise RuntimeError("scale sentinel report manifest differs")
-    if report.get("records") != sentinel["expected_records"]:
-        raise RuntimeError("scale sentinel report is incomplete")
-    truncation = report.get("overall_truncation_rate_observed")
-    if not isinstance(truncation, (int, float)) or isinstance(truncation, bool):
-        raise RuntimeError("scale sentinel report has no numeric truncation rate")
-    if truncation > 0.25:
-        raise RuntimeError(
-            "scale sentinel failed the observed cohort truncation gate: "
-            f"{truncation:.4f} > 0.2500"
-        )
+    truncation = _require_sentinel_report_ready(
+        report,
+        fingerprint=sentinel["fingerprint"],
+        expected_records=sentinel["expected_records"],
+        model_ids=_protocol_manifest(root).model_ids,
+    )
     print(
-        f"Scale sentinel passed observed cohort truncation: {truncation:.4f} <= 0.2500",
+        "Scale sentinel passed overall and every-model truncation gates: "
+        f"overall={truncation:.4f} <= 0.2500",
         flush=True,
     )
 
@@ -300,13 +374,18 @@ def _quality_ready(path: Path, fingerprint: str) -> bool:
         report = json.load(stream)
     if report.get("manifest_fingerprint") != fingerprint:
         raise RuntimeError(f"quality report manifest differs: {path}")
+    checks = report.get("checks")
+    if not isinstance(checks, dict) or checks.get(
+        "every_model_truncation_rate_at_most_25_percent"
+    ) is not True:
+        raise RuntimeError(f"quality report lacks a passing per-model gate: {path}")
     if report.get("ready_for_scale") is not True:
         raise RuntimeError(f"seed failed response-quality gate: {path}")
     return True
 
 
 def _record_runtime(root: Path) -> None:
-    target = root / "data" / "scale-expanded-runtime.json"
+    target = root / "data" / f"{PROTOCOL_PREFIX}-runtime.json"
     if target.exists():
         return
     import torch
@@ -354,7 +433,7 @@ def main() -> int:
     _materialize_sentinel(root)
     if args.prepare_only:
         print(
-            "Expanded sentinel, three-seed manifests, and analysis configs are ready."
+            "Expanded v2 sentinel, three-seed manifests, and analysis configs are ready."
         )
         return 0
 
@@ -458,9 +537,9 @@ def main() -> int:
     factorial_outputs = [
         str(output) for seed in SEEDS for output in runs[seed]["factorial_outputs"]
     ]
-    grid_aggregate = root / "results" / "scale-expanded-grid-aggregate.json"
-    projection_aggregate = root / "results" / "scale-expanded-projection-aggregate.json"
-    factorial_aggregate = root / "results" / "scale-expanded-factorial-aggregate.json"
+    grid_aggregate = root / "results" / f"{PROTOCOL_PREFIX}-grid-aggregate.json"
+    projection_aggregate = root / "results" / f"{PROTOCOL_PREFIX}-projection-aggregate.json"
+    factorial_aggregate = root / "results" / f"{PROTOCOL_PREFIX}-factorial-aggregate.json"
     aggregates = (
         (grid_outputs, grid_aggregate, "grid aggregate"),
         (projection_outputs, projection_aggregate, "projection aggregate"),
@@ -475,7 +554,7 @@ def main() -> int:
             )
 
     manifest = runs[2027]["manifest"]
-    decoding = root / "results" / "scale-expanded-decoding-report.json"
+    decoding = root / "results" / f"{PROTOCOL_PREFIX}-decoding-report.json"
     if not decoding.is_file():
         _run(
             [
@@ -495,7 +574,7 @@ def main() -> int:
             env=env,
             stage="decoding report",
         )
-    relationship = root / "results" / "scale-expanded-relationship-report.json"
+    relationship = root / "results" / f"{PROTOCOL_PREFIX}-relationship-report.json"
     if not relationship.is_file():
         _run(
             [
@@ -516,7 +595,7 @@ def main() -> int:
             env=env,
             stage="relationship report",
         )
-    figures = root / "results" / "scale-expanded-final-figures"
+    figures = root / "results" / f"{PROTOCOL_PREFIX}-final-figures"
     if not figures.is_dir():
         _run(
             [
@@ -540,7 +619,7 @@ def main() -> int:
             env=env,
             stage="final figures",
         )
-    print("\nExpanded three-seed program complete.", flush=True)
+    print("\nExpanded v2 three-seed program complete.", flush=True)
     return 0
 
 
