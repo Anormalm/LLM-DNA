@@ -124,6 +124,24 @@ def _parser() -> argparse.ArgumentParser:
     resize_manifest.add_argument("--dataset-id", required=True)
     resize_manifest.add_argument("--output", type=Path, required=True)
 
+    token_limit = commands.add_parser(
+        "set-token-limit",
+        help="clone a manifest with one max-new-token limit for every decoding setting",
+    )
+    token_limit.add_argument("--manifest", type=Path, required=True)
+    token_limit.add_argument("--max-new-tokens", type=int, required=True)
+    token_limit.add_argument("--dataset-id", required=True)
+    token_limit.add_argument("--output", type=Path, required=True)
+
+    subset_manifest = commands.add_parser(
+        "subset-manifest",
+        help="clone a manifest with an ordered subset of its pinned model roster",
+    )
+    subset_manifest.add_argument("--manifest", type=Path, required=True)
+    subset_manifest.add_argument("--model", action="append", required=True)
+    subset_manifest.add_argument("--dataset-id", required=True)
+    subset_manifest.add_argument("--output", type=Path, required=True)
+
     revise_manifest = commands.add_parser(
         "revise-manifest",
         help="clone a manifest with validated text-only prompt revisions and provenance",
@@ -536,6 +554,92 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "output": str(written),
                         "generations": resized.generations,
                         "manifest_fingerprint": resized.fingerprint,
+                        "parent_manifest_fingerprint": manifest.fingerprint,
+                    },
+                    indent=2,
+                )
+            )
+            return 0
+        if args.command == "set-token-limit":
+            if args.output.exists():
+                raise FileExistsError(
+                    f"token-adjusted manifest already exists; choose a fresh path: {args.output}"
+                )
+            manifest = CollectionManifest.load(args.manifest)
+            if args.max_new_tokens <= 0:
+                raise ValueError("max-new-tokens must be a positive integer")
+            if not args.dataset_id.strip():
+                raise ValueError("dataset-id must be non-empty")
+            previous_limits = sorted(
+                {setting.max_new_tokens for setting in manifest.settings}
+            )
+            if previous_limits == [args.max_new_tokens]:
+                raise ValueError("new token limit must differ from the source manifest")
+            metadata = dict(manifest.metadata)
+            metadata["parent_manifest_fingerprint"] = manifest.fingerprint
+            metadata["parent_max_new_tokens"] = previous_limits
+            adjusted = replace(
+                manifest,
+                dataset_id=args.dataset_id.strip(),
+                settings=tuple(
+                    replace(setting, max_new_tokens=args.max_new_tokens)
+                    for setting in manifest.settings
+                ),
+                metadata=metadata,
+            )
+            written = adjusted.save(args.output.resolve())
+            print(
+                json.dumps(
+                    {
+                        "status": "complete",
+                        "output": str(written),
+                        "max_new_tokens": args.max_new_tokens,
+                        "manifest_fingerprint": adjusted.fingerprint,
+                        "parent_manifest_fingerprint": manifest.fingerprint,
+                    },
+                    indent=2,
+                )
+            )
+            return 0
+        if args.command == "subset-manifest":
+            if args.output.exists():
+                raise FileExistsError(
+                    f"subset manifest already exists; choose a fresh path: {args.output}"
+                )
+            manifest = CollectionManifest.load(args.manifest)
+            if not args.dataset_id.strip():
+                raise ValueError("dataset-id must be non-empty")
+            model_ids = tuple(args.model)
+            if len(set(model_ids)) != len(model_ids):
+                raise ValueError("model subset must not contain duplicate IDs")
+            unknown = sorted(set(model_ids).difference(manifest.model_ids))
+            if unknown:
+                raise ValueError(f"model subset contains unknown IDs: {unknown}")
+            if set(model_ids) == set(manifest.model_ids):
+                raise ValueError("model subset must omit at least one source model")
+            revisions = manifest.metadata.get("model_revisions")
+            if not isinstance(revisions, dict):
+                raise ValueError("source manifest has no pinned model_revisions")
+            metadata = dict(manifest.metadata)
+            metadata["parent_manifest_fingerprint"] = manifest.fingerprint
+            metadata["parent_model_ids"] = list(manifest.model_ids)
+            metadata["model_revisions"] = {
+                model_id: revisions[model_id] for model_id in model_ids
+            }
+            subset = replace(
+                manifest,
+                dataset_id=args.dataset_id.strip(),
+                model_ids=model_ids,
+                metadata=metadata,
+            )
+            written = subset.save(args.output.resolve())
+            print(
+                json.dumps(
+                    {
+                        "status": "complete",
+                        "output": str(written),
+                        "model_ids": list(model_ids),
+                        "manifest_fingerprint": subset.fingerprint,
                         "parent_manifest_fingerprint": manifest.fingerprint,
                     },
                     indent=2,
