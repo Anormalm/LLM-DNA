@@ -124,6 +124,15 @@ def test_collection_progress_reports_incomplete_cache_without_gate_claim(
     assert report["final_quality_gate_eligible"] is False
     assert report["runtime_projection"]["remaining_inference_seconds"] == 5.5
     assert sum(row["records"] for row in report["models"]) == 5
+    assert report["truncation_gate_forecast"] == {
+        "threshold": 0.25,
+        "truncated_records_observed": 0,
+        "maximum_truncated_records": 4.0,
+        "remaining_truncation_budget": 4.0,
+        "final_truncation_rate_lower_bound": 0.0,
+        "gate_still_mathematically_achievable": True,
+        "maximum_remaining_truncation_rate_to_pass": 4 / 11,
+    }
 
 
 def test_collection_progress_cli_accepts_incomplete_cache(tmp_path: Path) -> None:

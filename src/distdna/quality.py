@@ -113,14 +113,30 @@ def collection_progress_report(dataset: ResponseDataset) -> Dict[str, Any]:
         model_rows.append(row)
 
     timed = _timed_records(records)
+    truncated_records = sum(
+        item.metadata.get("stop_reason") == "max_new_tokens" for item in records
+    )
     overall_truncation = (
-        sum(
-            item.metadata.get("stop_reason") == "max_new_tokens" for item in records
-        )
+        truncated_records
         / len(records)
         if records
         else None
     )
+    truncation_limit = expected * 0.25
+    remaining_truncation_budget = truncation_limit - truncated_records
+    gate_forecast = {
+        "threshold": 0.25,
+        "truncated_records_observed": truncated_records,
+        "maximum_truncated_records": truncation_limit,
+        "remaining_truncation_budget": remaining_truncation_budget,
+        "final_truncation_rate_lower_bound": truncated_records / expected,
+        "gate_still_mathematically_achievable": remaining_truncation_budget >= 0,
+        "maximum_remaining_truncation_rate_to_pass": (
+            min(1.0, max(0.0, remaining_truncation_budget / remaining))
+            if remaining
+            else None
+        ),
+    }
     projection = None
     if timed:
         mean_seconds = statistics.fmean(item[0] for item in timed)
@@ -149,6 +165,7 @@ def collection_progress_report(dataset: ResponseDataset) -> Dict[str, Any]:
             * len(dataset.manifest.prompts)
         ),
         "overall_truncation_rate_observed": overall_truncation,
+        "truncation_gate_forecast": gate_forecast,
         "timed_records": len(timed),
         "aggregate_tokens_per_second_observed": (
             sum(item[1] for item in timed) / sum(item[0] for item in timed)
