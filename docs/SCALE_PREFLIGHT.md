@@ -90,6 +90,30 @@ The complete resumable command is:
 caffeinate -dimsu .venv/bin/python scripts/run_scale_program.py
 ```
 
+For an early all-cell truncation/runtime sentinel, derive a one-generation manifest without editing
+the full protocol, reuse exact generation-zero records, and collect only the missing cells:
+
+```bash
+distdna resize-manifest \
+  --manifest data/scale-expanded-seed2027/collection.json \
+  --generations 1 \
+  --dataset-id temporary-public-scale-sentinel-v1 \
+  --output data/scale-expanded-sentinel/collection.json
+distdna reuse-responses \
+  --source-cache data/scale-expanded-seed2027/responses \
+  --target-manifest data/scale-expanded-sentinel/collection.json \
+  --target-cache data/scale-expanded-sentinel/responses
+```
+
+This sentinel can estimate truncation and checkpoint-specific runtime. With one response per cell,
+it cannot test within-cell stochastic diversity and is never a substitute for the complete seed
+quality gate.
+
+The resumable program runner performs this sentinel automatically before continuing seed
+collection. It fails closed when the complete 2,880-cell sentinel's observed cohort truncation is
+above 25%; the full per-seed gate still independently checks completeness, diversity, length, and
+truncation over all 92,160 responses.
+
 ## Local evidence
 
 - Quality report: `results/scale-preflight-final-quality.json`

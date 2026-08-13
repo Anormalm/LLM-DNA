@@ -113,6 +113,15 @@ def _parser() -> argparse.ArgumentParser:
     reseed_manifest.add_argument("--seed", type=int, required=True)
     reseed_manifest.add_argument("--output", type=Path, required=True)
 
+    resize_manifest = commands.add_parser(
+        "resize-manifest",
+        help="clone a manifest with a new generation count and provenance link",
+    )
+    resize_manifest.add_argument("--manifest", type=Path, required=True)
+    resize_manifest.add_argument("--generations", type=int, required=True)
+    resize_manifest.add_argument("--dataset-id", required=True)
+    resize_manifest.add_argument("--output", type=Path, required=True)
+
     collect_local = commands.add_parser(
         "collect-local", help="collect a manifest with sequential local Transformers models"
     )
@@ -480,6 +489,41 @@ def main(argv: Sequence[str] | None = None) -> int:
                         "output": str(written),
                         "random_seed": reseeded.random_seed,
                         "manifest_fingerprint": reseeded.fingerprint,
+                        "parent_manifest_fingerprint": manifest.fingerprint,
+                    },
+                    indent=2,
+                )
+            )
+            return 0
+        if args.command == "resize-manifest":
+            if args.output.exists():
+                raise FileExistsError(
+                    f"resized manifest already exists; choose a fresh path: {args.output}"
+                )
+            manifest = CollectionManifest.load(args.manifest)
+            if args.generations <= 0:
+                raise ValueError("generations must be a positive integer")
+            if args.generations == manifest.generations:
+                raise ValueError("new generation count must differ from the source manifest")
+            if not args.dataset_id.strip():
+                raise ValueError("dataset-id must be non-empty")
+            metadata = dict(manifest.metadata)
+            metadata["parent_manifest_fingerprint"] = manifest.fingerprint
+            metadata["parent_generations"] = manifest.generations
+            resized = replace(
+                manifest,
+                dataset_id=args.dataset_id,
+                generations=args.generations,
+                metadata=metadata,
+            )
+            written = resized.save(args.output.resolve())
+            print(
+                json.dumps(
+                    {
+                        "status": "complete",
+                        "output": str(written),
+                        "generations": resized.generations,
+                        "manifest_fingerprint": resized.fingerprint,
                         "parent_manifest_fingerprint": manifest.fingerprint,
                     },
                     indent=2,

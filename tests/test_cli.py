@@ -140,3 +140,78 @@ def test_collect_local_rejects_non_positive_progress_interval(tmp_path: Path) ->
         )
         == 2
     )
+
+
+def test_resize_manifest_preserves_protocol_and_records_parent(tmp_path: Path) -> None:
+    source = CollectionManifest(
+        dataset_id="full-test",
+        model_ids=("m0",),
+        settings=(DecodingSetting("sample", 0.7, 0.9, 32),),
+        prompts=(
+            Prompt("c0", "calibration", "calibration"),
+            Prompt("e0", "evaluation", "evaluation"),
+        ),
+        generations=32,
+        random_seed=2027,
+        metadata={"model_revisions": {"m0": "a" * 40}},
+    )
+    source_path = source.save(tmp_path / "source.json")
+    output_path = tmp_path / "sentinel.json"
+
+    assert (
+        main(
+            [
+                "resize-manifest",
+                "--manifest",
+                str(source_path),
+                "--generations",
+                "1",
+                "--dataset-id",
+                "sentinel-test",
+                "--output",
+                str(output_path),
+            ]
+        )
+        == 0
+    )
+    sentinel = CollectionManifest.load(output_path)
+    assert sentinel.dataset_id == "sentinel-test"
+    assert sentinel.generations == 1
+    assert sentinel.random_seed == source.random_seed
+    assert sentinel.model_ids == source.model_ids
+    assert sentinel.settings == source.settings
+    assert sentinel.prompts == source.prompts
+    assert sentinel.metadata["model_revisions"] == source.metadata["model_revisions"]
+    assert sentinel.metadata["parent_manifest_fingerprint"] == source.fingerprint
+    assert sentinel.metadata["parent_generations"] == 32
+
+
+def test_resize_manifest_rejects_invalid_or_unchanged_generations(tmp_path: Path) -> None:
+    source = CollectionManifest(
+        dataset_id="full-test",
+        model_ids=("m0",),
+        settings=(DecodingSetting("sample", 0.7, 0.9),),
+        prompts=(
+            Prompt("c0", "calibration", "calibration"),
+            Prompt("e0", "evaluation", "evaluation"),
+        ),
+        generations=2,
+    )
+    source_path = source.save(tmp_path / "source.json")
+    for generations in (0, 2):
+        assert (
+            main(
+                [
+                    "resize-manifest",
+                    "--manifest",
+                    str(source_path),
+                    "--generations",
+                    str(generations),
+                    "--dataset-id",
+                    "sentinel-test",
+                    "--output",
+                    str(tmp_path / f"sentinel-{generations}.json"),
+                ]
+            )
+            == 2
+        )

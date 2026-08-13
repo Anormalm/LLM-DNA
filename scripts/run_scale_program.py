@@ -178,6 +178,121 @@ def _materialize(root: Path) -> dict[int, dict[str, Any]]:
     return runs
 
 
+def _materialize_sentinel(root: Path) -> dict[str, Any]:
+    source = CollectionManifest.load(root / "configs" / "scale-expanded.collection.json")
+    metadata = dict(source.metadata)
+    metadata["parent_manifest_fingerprint"] = source.fingerprint
+    metadata["parent_generations"] = source.generations
+    metadata["purpose"] = (
+        "all-roster, all-setting, all-prompt one-generation truncation and runtime sentinel"
+    )
+    sentinel = replace(
+        source,
+        dataset_id="temporary-public-scale-sentinel-v1",
+        generations=1,
+        metadata=metadata,
+    )
+    data_dir = root / "data" / "scale-expanded-sentinel"
+    manifest_path = data_dir / "collection.json"
+    if manifest_path.exists():
+        existing = CollectionManifest.load(manifest_path)
+        if existing.fingerprint != sentinel.fingerprint:
+            raise RuntimeError(f"existing sentinel manifest differs: {manifest_path}")
+    else:
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        sentinel.save(manifest_path)
+    return {
+        "manifest": manifest_path,
+        "cache": data_dir / "responses",
+        "report": root / "results" / "scale-expanded-sentinel-progress.json",
+        "fingerprint": sentinel.fingerprint,
+        "expected_records": (
+            len(sentinel.model_ids)
+            * len(sentinel.settings)
+            * len(sentinel.prompts)
+            * sentinel.generations
+        ),
+    }
+
+
+def _sentinel_gate(root: Path, cli: Path, env: Mapping[str, str]) -> None:
+    sentinel = _materialize_sentinel(root)
+    source_cache = root / "data" / "scale-expanded-seed2027" / "responses"
+    if (source_cache / "manifest.json").is_file():
+        _run(
+            [
+                str(cli),
+                "reuse-responses",
+                "--source-cache",
+                str(source_cache),
+                "--target-manifest",
+                str(sentinel["manifest"]),
+                "--target-cache",
+                str(sentinel["cache"]),
+            ],
+            env=env,
+            stage="reuse generation-zero records for scale sentinel",
+        )
+    response_file = sentinel["cache"] / "responses.jsonl"
+    completed = 0
+    if response_file.is_file():
+        with response_file.open("r", encoding="utf-8") as stream:
+            completed = sum(bool(line.strip()) for line in stream)
+    if completed < sentinel["expected_records"]:
+        _run(
+            [
+                str(cli),
+                "collect-local",
+                "--manifest",
+                str(sentinel["manifest"]),
+                "--cache-dir",
+                str(sentinel["cache"]),
+                "--device",
+                "mps",
+                "--dtype",
+                "float16",
+                "--local-files-only",
+                "--progress-every",
+                "100",
+            ],
+            env=env,
+            stage=f"all-cell scale sentinel ({completed}/{sentinel['expected_records']})",
+        )
+    if not sentinel["report"].is_file():
+        _run(
+            [
+                str(cli),
+                "collection-progress",
+                "--manifest",
+                str(sentinel["manifest"]),
+                "--cache-dir",
+                str(sentinel["cache"]),
+                "--output",
+                str(sentinel["report"]),
+            ],
+            env=env,
+            stage="scale sentinel report",
+        )
+    with sentinel["report"].open("r", encoding="utf-8") as stream:
+        report = json.load(stream)
+    if report.get("manifest_fingerprint") != sentinel["fingerprint"]:
+        raise RuntimeError("scale sentinel report manifest differs")
+    if report.get("records") != sentinel["expected_records"]:
+        raise RuntimeError("scale sentinel report is incomplete")
+    truncation = report.get("overall_truncation_rate_observed")
+    if not isinstance(truncation, (int, float)) or isinstance(truncation, bool):
+        raise RuntimeError("scale sentinel report has no numeric truncation rate")
+    if truncation > 0.25:
+        raise RuntimeError(
+            "scale sentinel failed the observed cohort truncation gate: "
+            f"{truncation:.4f} > 0.2500"
+        )
+    print(
+        f"Scale sentinel passed observed cohort truncation: {truncation:.4f} <= 0.2500",
+        flush=True,
+    )
+
+
 def _quality_ready(path: Path, fingerprint: str) -> bool:
     if not path.is_file():
         return False
@@ -236,9 +351,14 @@ def main() -> int:
     )
     _record_runtime(root)
     runs = _materialize(root)
+    _materialize_sentinel(root)
     if args.prepare_only:
-        print("Expanded three-seed manifests and analysis configs are ready.")
+        print(
+            "Expanded sentinel, three-seed manifests, and analysis configs are ready."
+        )
         return 0
+
+    _sentinel_gate(root, cli, env)
 
     for seed in SEEDS:
         run = runs[seed]
