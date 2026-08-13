@@ -110,3 +110,33 @@ def test_reseed_manifest_rejects_same_seed_and_existing_output(tmp_path: Path) -
         )
         == 2
     )
+
+
+def test_collect_local_rejects_non_positive_progress_interval(tmp_path: Path) -> None:
+    manifest = CollectionManifest(
+        dataset_id="progress-test",
+        model_ids=("m0",),
+        settings=(DecodingSetting("sample", 0.7, 0.9),),
+        prompts=(
+            Prompt("c0", "calibration", "calibration"),
+            Prompt("e0", "evaluation", "evaluation"),
+        ),
+        generations=2,
+        metadata={"model_revisions": {"m0": "a" * 40}},
+    )
+    manifest_path = manifest.save(tmp_path / "collection.json")
+
+    assert (
+        main(
+            [
+                "collect-local",
+                "--manifest",
+                str(manifest_path),
+                "--cache-dir",
+                str(tmp_path / "responses"),
+                "--progress-every",
+                "0",
+            ]
+        )
+        == 2
+    )

@@ -1,8 +1,8 @@
 # Expanded public-model preflight
 
-Status: the bounded preflight passes. The full temporary collection is specified but has not been
-started because it is a multi-day local run and six additional model weight sets are not yet cached.
-All results here are engineering diagnostics, not manuscript evidence.
+Status: the bounded preflight and six-checkpoint compatibility benchmark pass. The full temporary
+collection is a resumable multi-day local run. All results here are engineering diagnostics, not
+manuscript evidence.
 
 ## Expanded protocol
 
@@ -68,14 +68,27 @@ projection. New Granite checkpoints may be slower, so their one-response compati
 must precede full collection. Responses plus uncompressed embeddings are estimated near 1.01 GiB,
 excluding downloaded weights and experiment outputs.
 
+The six newly added checkpoints completed 24/24 bounded calls through their pinned revisions,
+native templates, float16 weights, and Apple MPS. Their response-quality gate passes at exactly
+25% truncation. This slower model mix revises the three-seed sequential estimate to approximately
+164 central hours and 258 hours under the p90-per-call projection.
+
 The old 64-token caches are not reused: `max_new_tokens` is part of the decoding setting, and
 changing it to 128 changes the collection contract even when an individual old answer stopped
 early. The appropriate next action is therefore a staged scale run:
 
-1. Download and locally load one prompt for each of the six new checkpoints.
-2. Update the runtime estimate with those measured model-specific timings.
-3. Collect one complete 12-model seed and run the quality gate before launching seeds 2028/2029.
-4. Proceed to all three seeds only if completeness, truncation, diversity, and retrieval gates pass.
+1. Collect one complete 12-model seed and run its response-quality gate.
+2. Encode and run the full R/D, projection, and bandwidth/normalization analyses for that seed.
+3. Proceed to seeds 2028/2029 only when the preceding seed passes completeness, truncation, and
+   diversity gates.
+4. Aggregate all independent seeds, build decoding and relationship reports, and render a fresh
+   provenance-hashed figure bundle.
+
+The complete resumable command is:
+
+```bash
+caffeinate -dimsu .venv/bin/python scripts/run_scale_program.py
+```
 
 ## Local evidence
 

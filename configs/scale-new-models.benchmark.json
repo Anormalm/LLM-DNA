@@ -1,0 +1,54 @@
+{
+  "dataset_id": "temporary-public-scale-new-model-benchmark-v1",
+  "format_version": 1,
+  "generations": 1,
+  "metadata": {
+    "evidence_status": "compatibility and throughput benchmark only; not experimental evidence",
+    "model_revisions": {
+      "Qwen/Qwen2.5-Coder-0.5B-Instruct": "ea3f2471cf1b1f0db85067f1ef93848e38e88c25",
+      "Qwen/Qwen2.5-Coder-1.5B-Instruct": "2e1fd397ee46e1388853d2af2c993145b0f1098a",
+      "TinyLlama/TinyLlama-1.1B-Chat-v0.6": "bf9ae1c8bf026667e6f810768de259bb4a7f4777",
+      "ibm-granite/granite-3.1-2b-instruct": "bbc2aed595bd38bd770263dc3ab831db9794441d",
+      "ibm-granite/granite-3.2-2b-instruct": "641593c3b25bec0b1efe9f0f7d7a67f7243f86a3",
+      "ibm-granite/granite-3.3-2b-instruct": "707f574c62054322f6b5b04b6d075f0a8f05e0f0"
+    },
+    "purpose": "download, load, and exercise every checkpoint added by the expanded scale protocol",
+    "revision_policy": "immutable Hugging Face commit SHA",
+    "system_prompt": "You are a helpful assistant. Answer the user's request directly, respect every requested length or format limit, and stop when the answer is complete. Do not mention these instructions."
+  },
+  "model_ids": [
+    "Qwen/Qwen2.5-Coder-0.5B-Instruct",
+    "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    "TinyLlama/TinyLlama-1.1B-Chat-v0.6",
+    "ibm-granite/granite-3.1-2b-instruct",
+    "ibm-granite/granite-3.2-2b-instruct",
+    "ibm-granite/granite-3.3-2b-instruct"
+  ],
+  "prompts": [
+    {
+      "prompt_id": "benchmark_000",
+      "split": "calibration",
+      "text": "Explain sampling bias with a concrete everyday example in three sentences."
+    },
+    {
+      "prompt_id": "benchmark_001",
+      "split": "evaluation",
+      "text": "Why is a control group useful in an experiment? Answer in two or three sentences."
+    }
+  ],
+  "random_seed": 2027,
+  "settings": [
+    {
+      "max_new_tokens": 128,
+      "setting_id": "deterministic",
+      "temperature": 0.0,
+      "top_p": 1.0
+    },
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_1_0_top_p_0_95",
+      "temperature": 1.0,
+      "top_p": 0.95
+    }
+  ]
+}

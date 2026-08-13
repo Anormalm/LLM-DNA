@@ -123,6 +123,12 @@ def _parser() -> argparse.ArgumentParser:
         "--dtype", choices=("float16", "bfloat16", "float32"), default="float16"
     )
     collect_local.add_argument("--local-files-only", action="store_true")
+    collect_local.add_argument(
+        "--progress-every",
+        type=int,
+        default=10,
+        help="report every N durable response records",
+    )
 
     reuse = commands.add_parser(
         "reuse-responses",
@@ -473,6 +479,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             return 0
         if args.command == "collect-local":
+            if args.progress_every <= 0:
+                raise ValueError("progress-every must be a positive integer")
             manifest = CollectionManifest.load(args.manifest)
             generator = LocalTransformersGenerator(
                 manifest,
@@ -483,7 +491,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
 
             def report(completed, total, record):
-                if completed == total or completed % 10 == 0:
+                if completed == total or completed % args.progress_every == 0:
                     print(
                         f"collected {completed}/{total}: "
                         f"{record.model_id} {record.setting_id} {record.prompt_id} "
