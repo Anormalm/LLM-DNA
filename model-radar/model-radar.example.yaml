@@ -1,0 +1,51 @@
+database: data/radar.db
+reports_dir: reports
+probes_file: probes/default.json
+
+openrouter:
+  api_key_env: OPENROUTER_API_KEY
+  timeout_seconds: 90
+  retries: 3
+  http_referer: ""
+  app_title: Model Radar
+
+discovery:
+  keywords: [stealth, alpha, preview, experimental]
+
+priority:
+  minimum_score: 45
+  weights:
+    novelty: 0.30
+    trend: 0.25
+    stealth: 0.20
+    free_preview: 0.15
+    capability_interest: 0.10
+  capability_keywords: [coding, reasoning, agentic, tool, multimodal, long context]
+
+probe:
+  repetitions: 3
+  temperature: 0.0
+  top_p: 1.0
+  max_tokens: 256
+  system_prompt: ""
+  transport: sync
+  provider_only: []
+  allow_fallbacks: false
+  poll_interval_seconds: 30
+  batch_timeout_seconds: 86400
+
+fingerprint:
+  backend: hash
+  dimension: 256
+  seed: 42
+  sentence_encoder: sentence-transformers/all-mpnet-base-v2
+
+drift:
+  distance_threshold: 0.25
+  noise_multiplier: 3.0
+  nearest_neighbors: 5
+
+alerts:
+  webhook_env: RADAR_WEBHOOK_URL
+  format: discord
+

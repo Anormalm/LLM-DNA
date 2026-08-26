@@ -1,0 +1,30 @@
+name: Model Radar CI
+
+on:
+  push:
+    paths:
+      - "model-radar/**"
+      - ".github/workflows/model-radar-ci.yml"
+  pull_request:
+    paths:
+      - "model-radar/**"
+      - ".github/workflows/model-radar-ci.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: model-radar
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: model-radar/pyproject.toml
+      - run: pip install -e .
+      - run: python -m unittest discover -s tests -v

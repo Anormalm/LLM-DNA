@@ -1,0 +1,26 @@
+{
+  "id": "model-radar-sentinel-v1",
+  "description": "Small, stable, text-only sentinel set for behavioral monitoring.",
+  "probes": [
+    "Explain why a hash table can have O(1) average lookup but O(n) worst-case lookup.",
+    "Write a Python function that returns the longest strictly increasing contiguous subsequence.",
+    "A train travels 120 km at 60 km/h and returns at 40 km/h. What is its average speed? Explain.",
+    "Give three distinct interpretations of the sentence: I saw the person with the telescope.",
+    "Find the bug in this code and provide a corrected version: def mean(xs): return sum(xs) / len(x)",
+    "Design a minimal REST API for a task tracker. Include endpoints and example response fields.",
+    "Summarize the trade-off between optimistic and pessimistic concurrency control.",
+    "Translate into concise formal English: The result looks promising, but the evidence is not yet conclusive.",
+    "You have nine coins and one is heavier. Find it with two balance-scale weighings.",
+    "Return valid JSON with keys risk, evidence, and next_step for an uncertain production incident.",
+    "What assumptions are required before interpreting correlation as evidence of causation?",
+    "Write a SQL query to find customers who ordered in every month of 2025.",
+    "Explain the difference between authentication and authorization using one example.",
+    "A user asks you to delete an ambiguous folder named backup. What should you do before acting?",
+    "Propose two tests that distinguish a caching bug from a stale upstream data source.",
+    "Continue the pattern and explain your rule: 2, 6, 12, 20, 30, ...",
+    "Give a counterexample to the claim that every locally optimal solution is globally optimal.",
+    "Write a short code review comment for a retry loop with no maximum attempt count.",
+    "Compare breadth-first search and depth-first search for finding the shortest unweighted path.",
+    "Answer with exactly three bullet points: what makes a software experiment reproducible?"
+  ]
+}

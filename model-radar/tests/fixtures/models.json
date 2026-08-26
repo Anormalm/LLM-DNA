@@ -1,0 +1,34 @@
+{
+  "data": [
+    {
+      "id": "stealth/ox-alpha",
+      "canonical_slug": "stealth/ox-alpha",
+      "name": "Ox Alpha",
+      "created": 1787184000,
+      "description": "A stealth preview model for coding, reasoning, and sustained agentic work.",
+      "context_length": 1048576,
+      "architecture": {"input_modalities": ["text", "image", "video"], "output_modalities": ["text"]},
+      "pricing": {"prompt": "0", "completion": "0"},
+      "supported_parameters": ["temperature", "top_p", "tools", "tool_choice"]
+    },
+    {
+      "id": "deepseek/deepseek-v4-flash-0731",
+      "canonical_slug": "deepseek/deepseek-v4-flash-0731",
+      "name": "DeepSeek V4 Flash 0731",
+      "created": 1785456000,
+      "description": "Fast reasoning and coding model.",
+      "context_length": 262144,
+      "pricing": {"prompt": "0.0000002", "completion": "0.0000008"}
+    },
+    {
+      "id": "openai/gpt-4o-2024-05-13",
+      "canonical_slug": "openai/gpt-4o-2024-05-13",
+      "name": "GPT-4o",
+      "created": 1715558400,
+      "description": "Versioned multimodal reference model.",
+      "context_length": 128000,
+      "pricing": {"prompt": "0.000005", "completion": "0.000015"}
+    }
+  ]
+}
+

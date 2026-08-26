@@ -1,0 +1,2 @@
+"""Packaged Model Radar resources."""
+

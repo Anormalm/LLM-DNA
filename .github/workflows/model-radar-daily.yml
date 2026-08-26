@@ -1,0 +1,51 @@
+name: Model Radar daily fingerprint scan
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "37 2 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: model-radar-state
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    if: ${{ vars.RADAR_MODELS != '' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: model-radar
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: model-radar/pyproject.toml
+      - run: pip install -e .
+      - uses: actions/cache/restore@v4
+        with:
+          path: model-radar/data/radar.db
+          key: radar-state-${{ github.run_id }}
+          restore-keys: radar-state-
+      - run: cp model-radar.example.yaml model-radar.yaml
+      - name: Run explicit model scan
+        run: model-radar scan --models "$RADAR_MODELS" --transport batch --limit 10 --yes-spend
+        env:
+          RADAR_MODELS: ${{ vars.RADAR_MODELS }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          RADAR_WEBHOOK_URL: ${{ secrets.RADAR_WEBHOOK_URL }}
+      - run: model-radar report
+      - uses: actions/upload-artifact@v4
+        with:
+          name: radar-reports-${{ github.run_id }}
+          path: model-radar/reports/
+          retention-days: 30
+      - uses: actions/cache/save@v4
+        with:
+          path: model-radar/data/radar.db
+          key: radar-state-${{ github.run_id }}
