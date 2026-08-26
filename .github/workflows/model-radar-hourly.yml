@@ -1,0 +1,48 @@
+name: Model Radar hourly discovery
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: model-radar-state
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: model-radar
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: model-radar/pyproject.toml
+      - run: pip install -e .
+      - uses: actions/cache/restore@v4
+        with:
+          path: model-radar/data/radar.db
+          key: radar-state-${{ github.run_id }}
+          restore-keys: radar-state-
+      - run: cp model-radar.example.yaml model-radar.yaml
+      - run: model-radar discover
+      - run: model-radar trends
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      - run: model-radar queue --limit 25 > queue.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: radar-discovery-${{ github.run_id }}
+          path: model-radar/queue.json
+          retention-days: 14
+      - uses: actions/cache/save@v4
+        with:
+          path: model-radar/data/radar.db
+          key: radar-state-${{ github.run_id }}

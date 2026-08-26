@@ -1,0 +1,18 @@
+{
+  "meta": {"as_of": "2026-08-26T02:00:00Z", "version": "v1"},
+  "data": [
+    {"date": "2026-08-22", "model_permaslug": "stealth/ox-alpha", "total_tokens": "1000000"},
+    {"date": "2026-08-22", "model_permaslug": "deepseek/deepseek-v4-flash-0731", "total_tokens": "9000000"},
+    {"date": "2026-08-22", "model_permaslug": "other", "total_tokens": "30000000"},
+    {"date": "2026-08-23", "model_permaslug": "stealth/ox-alpha", "total_tokens": "4000000"},
+    {"date": "2026-08-23", "model_permaslug": "deepseek/deepseek-v4-flash-0731", "total_tokens": "8500000"},
+    {"date": "2026-08-23", "model_permaslug": "other", "total_tokens": "31000000"},
+    {"date": "2026-08-24", "model_permaslug": "stealth/ox-alpha", "total_tokens": "12000000"},
+    {"date": "2026-08-24", "model_permaslug": "deepseek/deepseek-v4-flash-0731", "total_tokens": "8200000"},
+    {"date": "2026-08-24", "model_permaslug": "other", "total_tokens": "32000000"},
+    {"date": "2026-08-25", "model_permaslug": "stealth/ox-alpha", "total_tokens": "26000000"},
+    {"date": "2026-08-25", "model_permaslug": "deepseek/deepseek-v4-flash-0731", "total_tokens": "8000000"},
+    {"date": "2026-08-25", "model_permaslug": "other", "total_tokens": "33000000"}
+  ]
+}
+

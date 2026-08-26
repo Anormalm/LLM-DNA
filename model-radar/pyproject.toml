@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "model-radar"
+version = "0.1.0"
+description = "Discover, fingerprint, and monitor emerging black-box LLMs."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Model Radar contributors" }]
+keywords = ["llm", "openrouter", "fingerprinting", "model-monitoring", "drift"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+  "numpy>=1.24",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+reptrace = ["sentence-transformers>=2.2.2"]
+dev = ["pytest>=7.4", "ruff>=0.5"]
+
+[project.scripts]
+model-radar = "model_radar.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/model_radar"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
