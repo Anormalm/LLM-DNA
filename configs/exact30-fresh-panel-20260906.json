@@ -1,0 +1,916 @@
+{
+  "dataset_id": "exact30-fresh-panel-20260906",
+  "format_version": 1,
+  "generations": 8,
+  "metadata": {
+    "empty_decode_max_attempts": 16,
+    "hard_families": {
+      "bloom": [
+        "bigscience/bloom-560m",
+        "bigscience/bloomz-560m",
+        "bigscience/bloom-1b1",
+        "bigscience/bloomz-1b1"
+      ],
+      "falcon_h1": [
+        "tiiuae/Falcon-H1-0.5B-Base",
+        "tiiuae/Falcon-H1-1.5B-Base",
+        "tiiuae/Falcon-H1-3B-Base"
+      ],
+      "opt": [
+        "facebook/opt-1.3b",
+        "facebook/opt-iml-1.3b"
+      ],
+      "pythia_410m_seed": [
+        "EleutherAI/pythia-410m-seed1",
+        "EleutherAI/pythia-410m-seed2",
+        "EleutherAI/pythia-410m-seed3"
+      ],
+      "qwen2_5": [
+        "Qwen/Qwen2.5-0.5B",
+        "Qwen/Qwen2.5-0.5B-Instruct",
+        "Qwen/Qwen2.5-1.5B",
+        "Qwen/Qwen2.5-1.5B-Instruct",
+        "Qwen/Qwen2.5-Coder-0.5B",
+        "Qwen/Qwen2.5-Coder-0.5B-Instruct",
+        "Qwen/Qwen2.5-Coder-1.5B",
+        "Qwen/Qwen2.5-Coder-1.5B-Instruct"
+      ],
+      "smollm2": [
+        "HuggingFaceTB/SmolLM2-135M",
+        "HuggingFaceTB/SmolLM2-135M-Instruct",
+        "HuggingFaceTB/SmolLM2-360M",
+        "HuggingFaceTB/SmolLM2-360M-Instruct",
+        "HuggingFaceTB/SmolLM2-1.7B",
+        "HuggingFaceTB/SmolLM2-1.7B-Instruct"
+      ],
+      "stablelm2": [
+        "stabilityai/stablelm-2-1_6b",
+        "stabilityai/stablelm-2-zephyr-1_6b"
+      ],
+      "tinyllama": [
+        "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T",
+        "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+      ]
+    },
+    "min_new_tokens": 24,
+    "model_revisions": {
+      "EleutherAI/pythia-410m-seed1": "33803c4f5a1e9a4bece59e52f17bb8755add33e1",
+      "EleutherAI/pythia-410m-seed2": "da2549c8d3e03e6e927594b9060073abdb94e6ba",
+      "EleutherAI/pythia-410m-seed3": "1dd84c3d638fd5b6e3c77815ca2a26f1cdf1a307",
+      "HuggingFaceTB/SmolLM2-1.7B": "effd688a12921b4cc83e3312b6feb579f70f9c71",
+      "HuggingFaceTB/SmolLM2-1.7B-Instruct": "31b70e2e869a7173562077fd711b654946d38674",
+      "HuggingFaceTB/SmolLM2-135M": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2",
+      "HuggingFaceTB/SmolLM2-135M-Instruct": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "HuggingFaceTB/SmolLM2-360M": "f8027fd0eaeea54caa13c31d31b9fdc459c38b49",
+      "HuggingFaceTB/SmolLM2-360M-Instruct": "a10cc1512eabd3dde888204e902eca88bddb4951",
+      "Qwen/Qwen2.5-0.5B": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+      "Qwen/Qwen2.5-0.5B-Instruct": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "Qwen/Qwen2.5-1.5B": "8faed761d45a263340a0528343f099c05c9a4323",
+      "Qwen/Qwen2.5-1.5B-Instruct": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+      "Qwen/Qwen2.5-Coder-0.5B": "8123ea2e9354afb7ffcc6c8641d1b2f5ecf18301",
+      "Qwen/Qwen2.5-Coder-0.5B-Instruct": "ea3f2471cf1b1f0db85067f1ef93848e38e88c25",
+      "Qwen/Qwen2.5-Coder-1.5B": "df3ce67c0e24480f20468b6ef2894622d69eb73b",
+      "Qwen/Qwen2.5-Coder-1.5B-Instruct": "2e1fd397ee46e1388853d2af2c993145b0f1098a",
+      "TinyLlama/TinyLlama-1.1B-Chat-v1.0": "fe8a4ea1ffedaf415f4da2f062534de366a451e6",
+      "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T": "59f6f375b26bde864a6ca194a9a3044570490064",
+      "bigscience/bloom-1b1": "eb3dd7399312f5f94fd13f41d2f318117d3eb1e4",
+      "bigscience/bloom-560m": "ac2ae5fab2ce3f9f40dc79b5ca9f637430d24971",
+      "bigscience/bloomz-1b1": "3c4e8ecc1fbeb3a127a9869dd5a2d0f34560577d",
+      "bigscience/bloomz-560m": "a2845d7e13dd12efae154a9f1c63fcc2e0cc4b05",
+      "facebook/opt-1.3b": "3f5c25d0bc631cb57ac65913f76e22c2dfb61d62",
+      "facebook/opt-iml-1.3b": "2217fd558c1f573114c4e017e506d1e998dae9fa",
+      "stabilityai/stablelm-2-1_6b": "f499ead74c53749bd93cebc6ce8bc0d7bdf1eaef",
+      "stabilityai/stablelm-2-zephyr-1_6b": "2f275b1127d59fc31e4f7c7426d528768ada9ea4",
+      "tiiuae/Falcon-H1-0.5B-Base": "59fb76e8c5d3fc7441b062be638e1ba0afd5c687",
+      "tiiuae/Falcon-H1-1.5B-Base": "06d7330266253c20784f58b0a846dc09a9d12cee",
+      "tiiuae/Falcon-H1-3B-Base": "c096902c69be0eed2e5369d3420a8bb960d293e1"
+    },
+    "model_sources": {
+      "EleutherAI/pythia-410m-seed1": {
+        "repo_id": "EleutherAI/pythia-410m-seed1",
+        "requested_revision": "33803c4f5a1e9a4bece59e52f17bb8755add33e1"
+      },
+      "EleutherAI/pythia-410m-seed2": {
+        "repo_id": "EleutherAI/pythia-410m-seed2",
+        "requested_revision": "da2549c8d3e03e6e927594b9060073abdb94e6ba"
+      },
+      "EleutherAI/pythia-410m-seed3": {
+        "repo_id": "EleutherAI/pythia-410m-seed3",
+        "requested_revision": "1dd84c3d638fd5b6e3c77815ca2a26f1cdf1a307"
+      },
+      "HuggingFaceTB/SmolLM2-1.7B": {
+        "repo_id": "HuggingFaceTB/SmolLM2-1.7B",
+        "requested_revision": "effd688a12921b4cc83e3312b6feb579f70f9c71"
+      },
+      "HuggingFaceTB/SmolLM2-1.7B-Instruct": {
+        "repo_id": "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        "requested_revision": "31b70e2e869a7173562077fd711b654946d38674"
+      },
+      "HuggingFaceTB/SmolLM2-135M": {
+        "repo_id": "HuggingFaceTB/SmolLM2-135M",
+        "requested_revision": "93efa2f097d58c2a74874c7e644dbc9b0cee75a2"
+      },
+      "HuggingFaceTB/SmolLM2-135M-Instruct": {
+        "repo_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+        "requested_revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac"
+      },
+      "HuggingFaceTB/SmolLM2-360M": {
+        "repo_id": "HuggingFaceTB/SmolLM2-360M",
+        "requested_revision": "f8027fd0eaeea54caa13c31d31b9fdc459c38b49"
+      },
+      "HuggingFaceTB/SmolLM2-360M-Instruct": {
+        "repo_id": "HuggingFaceTB/SmolLM2-360M-Instruct",
+        "requested_revision": "a10cc1512eabd3dde888204e902eca88bddb4951"
+      },
+      "Qwen/Qwen2.5-0.5B": {
+        "repo_id": "Qwen/Qwen2.5-0.5B",
+        "requested_revision": "060db6499f32faf8b98477b0a26969ef7d8b9987"
+      },
+      "Qwen/Qwen2.5-0.5B-Instruct": {
+        "repo_id": "Qwen/Qwen2.5-0.5B-Instruct",
+        "requested_revision": "7ae557604adf67be50417f59c2c2f167def9a775"
+      },
+      "Qwen/Qwen2.5-1.5B": {
+        "repo_id": "Qwen/Qwen2.5-1.5B",
+        "requested_revision": "8faed761d45a263340a0528343f099c05c9a4323"
+      },
+      "Qwen/Qwen2.5-1.5B-Instruct": {
+        "repo_id": "Qwen/Qwen2.5-1.5B-Instruct",
+        "requested_revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306"
+      },
+      "Qwen/Qwen2.5-Coder-0.5B": {
+        "repo_id": "Qwen/Qwen2.5-Coder-0.5B",
+        "requested_revision": "8123ea2e9354afb7ffcc6c8641d1b2f5ecf18301"
+      },
+      "Qwen/Qwen2.5-Coder-0.5B-Instruct": {
+        "repo_id": "Qwen/Qwen2.5-Coder-0.5B-Instruct",
+        "requested_revision": "ea3f2471cf1b1f0db85067f1ef93848e38e88c25"
+      },
+      "Qwen/Qwen2.5-Coder-1.5B": {
+        "repo_id": "Qwen/Qwen2.5-Coder-1.5B",
+        "requested_revision": "df3ce67c0e24480f20468b6ef2894622d69eb73b"
+      },
+      "Qwen/Qwen2.5-Coder-1.5B-Instruct": {
+        "repo_id": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+        "requested_revision": "2e1fd397ee46e1388853d2af2c993145b0f1098a"
+      },
+      "TinyLlama/TinyLlama-1.1B-Chat-v1.0": {
+        "repo_id": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+        "requested_revision": "fe8a4ea1ffedaf415f4da2f062534de366a451e6"
+      },
+      "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T": {
+        "repo_id": "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T",
+        "requested_revision": "59f6f375b26bde864a6ca194a9a3044570490064"
+      },
+      "bigscience/bloom-1b1": {
+        "repo_id": "bigscience/bloom-1b1",
+        "requested_revision": "eb3dd7399312f5f94fd13f41d2f318117d3eb1e4"
+      },
+      "bigscience/bloom-560m": {
+        "repo_id": "bigscience/bloom-560m",
+        "requested_revision": "ac2ae5fab2ce3f9f40dc79b5ca9f637430d24971"
+      },
+      "bigscience/bloomz-1b1": {
+        "repo_id": "bigscience/bloomz-1b1",
+        "requested_revision": "3c4e8ecc1fbeb3a127a9869dd5a2d0f34560577d"
+      },
+      "bigscience/bloomz-560m": {
+        "repo_id": "bigscience/bloomz-560m",
+        "requested_revision": "a2845d7e13dd12efae154a9f1c63fcc2e0cc4b05"
+      },
+      "facebook/opt-1.3b": {
+        "repo_id": "facebook/opt-1.3b",
+        "requested_revision": "3f5c25d0bc631cb57ac65913f76e22c2dfb61d62"
+      },
+      "facebook/opt-iml-1.3b": {
+        "repo_id": "facebook/opt-iml-1.3b",
+        "requested_revision": "2217fd558c1f573114c4e017e506d1e998dae9fa"
+      },
+      "stabilityai/stablelm-2-1_6b": {
+        "repo_id": "stabilityai/stablelm-2-1_6b",
+        "requested_revision": "f499ead74c53749bd93cebc6ce8bc0d7bdf1eaef"
+      },
+      "stabilityai/stablelm-2-zephyr-1_6b": {
+        "repo_id": "stabilityai/stablelm-2-zephyr-1_6b",
+        "requested_revision": "2f275b1127d59fc31e4f7c7426d528768ada9ea4"
+      },
+      "tiiuae/Falcon-H1-0.5B-Base": {
+        "repo_id": "tiiuae/Falcon-H1-0.5B-Base",
+        "requested_revision": "59fb76e8c5d3fc7441b062be638e1ba0afd5c687"
+      },
+      "tiiuae/Falcon-H1-1.5B-Base": {
+        "repo_id": "tiiuae/Falcon-H1-1.5B-Base",
+        "requested_revision": "06d7330266253c20784f58b0a846dc09a9d12cee"
+      },
+      "tiiuae/Falcon-H1-3B-Base": {
+        "repo_id": "tiiuae/Falcon-H1-3B-Base",
+        "requested_revision": "c096902c69be0eed2e5369d3420a8bb960d293e1"
+      }
+    },
+    "outcome_access": "historical controls known; fresh evaluation outcomes not inspected at design freeze",
+    "plain_text_prefix": "",
+    "plain_text_suffix": "",
+    "population_scope": "same 30 pinned checkpoints; new prompts and stochastic draws; not new-checkpoint transfer",
+    "prompt_format": "plain_text",
+    "prompt_provenance": {
+      "excluded_config_sha256": {
+        "configs/anchor-gate-independent-confirmation-20260903.json": "b0479886c6d426c0a47a59c4908196c07c21ce8cfcf5cef762a7a02d6bbad3a9",
+        "configs/anchor-gate-independent-confirmation-preflight-20260903.json": "0f056b251ce5c7fb30c85994224787e6d098d4c6a04dfdfde58079b44db62428",
+        "configs/collection.example.json": "62de563d03a04b094108e1338188b93b33418fc616bd4b58d62b45cf84d51246",
+        "configs/cross-family-anchor-pilot.preflight.json": "9dc920e3f91e1d617faa1b1a77c25e15c3278195e2cc47ba9896347a3b966da1",
+        "configs/cross-family-anchor-pilot.seed2040.json": "572643f7b0d2c935922e16454c4a8da91251675a5400c87ae998443f566ec58d",
+        "configs/cross-family-anchor-pilot.seed2041.json": "f119a581c95f2bf75698e01f31b8ddf8ffa2e87503924cd05e29b4cc8dee4e29",
+        "configs/cross-family-anchor-pilot.seed2042.json": "9108fda8735db74c51e421a1b57ecf564864a8b269a490f09546f99afe35c55c",
+        "configs/hard13-exact-model-replication-20260826.preflight.json": "852f7e6f130c7db5df01b35213ea5d3a86c54b451d6dbd9a9fc5135b7c01751c",
+        "configs/hard13-exact-model-replication-20260826.resolved-v2.json": "b4630982a2242c6f767d03727be7fb6adf0dbc319b1e4087bba9fd1558e2c151",
+        "configs/hard13-exact-model-replication-20260826.unresolved.json": "2930a696d5442b8f734d952aaf8fe5f3a59cc1937bdd03e71aa142d95fff7e47",
+        "configs/local-factorial.collection.json": "50cfe5a5ebcbb361134c236ebed5014a4625424a9166c3a0452d0b44b98458ea",
+        "configs/local-smoke.collection.json": "b0920897323c453989680bcf640c0ba1396b7ff536028f2d0092a4e88c490de2",
+        "configs/paper-unseen-family-confirmation-20260829.json": "1f63e4f4907ced475a13399c9549a979bb991d836f1edd06715c6b1b44e6916b",
+        "configs/paper-unseen-family-confirmation-preflight-20260829.json": "e82b857ca8abb0a6eb0dfa5b6b2e7b3b105779c9059296547a791da08684ec91",
+        "configs/pythia-decoding-shift-confirm.preflight.json": "8ef1638e5757f7792bdf210d534145ec8c62b6aae868a0fd6940979c46387034",
+        "configs/pythia-decoding-shift-confirm.seed2030.json": "49ba45f2516507f01a44fbcd1792edccffe6186c407065d002d0fae6c4730bf9",
+        "configs/pythia-decoding-shift-confirm.seed2031.json": "601ef6427cb3bfa9994992dfb8d80258c87a7e6f4c56eba0ad7fadc968c50ac5",
+        "configs/pythia-decoding-shift-confirm.seed2032.json": "fbc4832b0b9f53d8245bf1c574a54f7c26a80e776704c0196f3061bf9a961ed4",
+        "configs/pythia-lineage-expansion.preflight.json": "d569450487ccf7d2ed864315edf33fb66919321a1b9f3f26e6c91958ac9c7560",
+        "configs/pythia-lineage-expansion.seed2030.json": "b79592e79655ca50fddeec93614e518fefeb3550f228939403b9e017f9b55f25",
+        "configs/pythia-lineage-expansion.seed2031.json": "ed58d27eecdbcc97da5bb84a952f6f17e60094a3b9a4a73d24425ad50c439b4d",
+        "configs/pythia-lineage-expansion.seed2032.json": "e41fd5cc3aa4d7844b14f138a09be72e7107ec06c5579263afa60c4502a470b5",
+        "configs/pythia-lineage-fixed-t07.preflight.json": "9c2f1a740b8c1ac43a769a4f0651490eae9be0413395a7925cf6f9d00dce5532",
+        "configs/pythia-lineage-fixed-t07.seed2030.json": "fb5f01ac4bb896d1960e3b213d5a23c336209d2766186075e5868001c6303d91",
+        "configs/pythia-lineage-fixed-t07.seed2031.json": "9ca0fa4692c4db74c4ad6051e7a0af3113f655626dc9b5d40f7e70e1f6750f7d",
+        "configs/pythia-lineage-fixed-t07.seed2032.json": "df081ead49f6eb39f5c6b27fadeb1352dcce1f4c794706b4c7ada53f41cd3f5a",
+        "configs/pythia-lineage-pilot.seed2027.json": "6b915e8f487c224ecc368e8c289c6606b4cc2e6ecea96ccef33835dac13fc4a5",
+        "configs/pythia-lineage-pilot.seed2028.json": "f9a5697121872a8f4caf1e5e0e2a8507454fa3e249aad19216a8bfdd6de4efb2",
+        "configs/pythia-lineage-pilot.seed2029.json": "f34950cc7fa61456e997f5e29d1ac46659c44108e1e54c7f90af3fb9bee6f5a7",
+        "configs/pythia-lineage-pilot.unresolved.seed2027.json": "58b0c692923b9279bbca7263b31b7a82366e7ea4083fb21078c6aeeb48a949c5",
+        "configs/pythia-lineage-preflight.one-checkpoint.json": "6c31cf34a822ab243b3e326b115fe36dbf41f3040ecd3eea4d3d19cd129ace78",
+        "configs/pythia-matched-anchor-confirm.preflight.json": "110166e9d73973d74ee836f724c846714f0750bbdc1b013bad8d734aaf943438",
+        "configs/pythia-matched-anchor-confirm.seed2033.json": "cd400a73580a00e4f15b0abf8e04d7c3ae155e9689dcc27d1ca977163c63902e",
+        "configs/pythia-matched-anchor-confirm.seed2034.json": "de8a86a05a70606df62561d021473a43514a5e7e52d77fd2f6467467715d9dd9",
+        "configs/pythia-matched-anchor-confirm.seed2035.json": "dd91d1d83dd9e5bc690d64279f4a7379783afbd7900b8906111b1b218b4f3059",
+        "configs/scale-expanded-v2.collection.json": "22203fc5f211620308c6b2a23c640f160632103d96a9dddef306d87577d45b01",
+        "configs/scale-expanded-v3.collection.json": "4a4b1b3c0711736879dd8feb1df2447a265fc65965ccd3ea6592964fc7a98b03",
+        "configs/scale-expanded.collection.json": "480dd8945755143dd9d46be48099dcddc87120730cf52601d31efd8127253500",
+        "configs/scale-new-models.benchmark.json": "6db0bd3874b4e94aba9404ea0d4c60457f799591b6381408e5215f3184b4f5a8",
+        "configs/scale-preflight.collection.json": "0be41d032a1f9b9d20e8688ac15ae5276ba15e5c4fb24f409cf8f598f313438c",
+        "configs/scaled30-exact-model-validation-20260827.json": "6496e27b00c2f455cbccaf2a3657430657216d73337e4e618f112825507e0950",
+        "configs/scaled30-exact-model-validation-20260827.preflight.json": "3fb326a9ac1060c638484f0ce40154bf9700eae9b226389cddb63aa53eb0a65b",
+        "configs/scaled30-exact-model-validation-r128-20260827.json": "cf04ef670ff5a3475eed623cc6e0b4e93515de128fdf917f831c22ed4817e0ca",
+        "configs/scaled30-family-exact-confirmation-20260828.json": "b4271582fbe429581cd6ebd36c3d472c4f3dc32d7bc3073adb0d863fb9c65dbc",
+        "configs/scaled30-family-exact-confirmation-preflight-r128-20260828.json": "e8930c4b642c4f33f2f7478110eb2b6e3d2b12be788d824023836b944a9803e2",
+        "configs/scaled30-family-exact-confirmation-preflight-r256-20260828.json": "ff96ca6fee3dc822487c534cee13becb6fb890b64ddabba4b009d4f49fab7f75",
+        "configs/scaled30-family-exact-confirmation-preflight-r512-20260828.json": "68f5cd7d12d9d4b17e66fa1322ec89a01f7da471cd725967afe581495db166b2",
+        "configs/scaled30-family-exact-confirmation-repair1-20260828.json": "3ac38c4fb1cd4ac80ce81ecdd75f8c17e1a96abd1d8f4d6c3046ef90b181b225",
+        "configs/scaled30-family-exact-confirmation-repair1-preflight-r128-20260828.json": "8f839723ee61b291042d3ab69747e0f67ba123e81a5a77c8919cfcaef9f2aa6f",
+        "configs/scaled30-family-exact-confirmation-repair1-preflight-r256-20260828.json": "1177e5d8ce5015e9d2c46e5b404c8a628a831141d92964e66ddc382542187eb5",
+        "configs/scaled30-family-exact-confirmation-repair1-preflight-r512-20260828.json": "34167e415a78ea539463b4fb3c578bfeea3d7849b9297f0c21f3b3d7ac8707dd",
+        "configs/scaled30-family-exact-confirmation-repair1-sentinel-r128-20260828.json": "8eac9fef451c83473f1824ff9039d6e44b96b737b3ec8f9149942a75310d393d",
+        "configs/scaled30-family-exact-confirmation-repair2-20260828.json": "df5bfe67d497fd12ddc510c6c07aa0d10aa1fadf5bd0ea68cde971ffc053264d",
+        "configs/scaled30-family-exact-confirmation-repair2-preflight-r128-20260828.json": "36b2dc31333a80601db5ee53bee9aff2d8eea9b8530144daf83f88568ac838c3",
+        "configs/scaled30-family-exact-confirmation-repair2-preflight-r256-20260828.json": "c0e1a4771c9c68c55ab829b9e83bee1bab82574dedd17d892c7e1e11bbdee9b1",
+        "configs/scaled30-family-exact-confirmation-repair2-preflight-r512-20260828.json": "cb415298c5f020a86f86ae9768aa5781b77ae902ff25557c0d5d098abb7d6f5a",
+        "configs/scaled30-family-exact-confirmation-repair2-selected-20260828.json": "6186fafd5ed7329e63f44f34e17fe00167af5d76d0b47a5acd08ca87a1c430f4",
+        "configs/scaled30-family-exact-confirmation-repair2-sentinel-r128-20260828.json": "1898308616df3d0aa957a0d2abce7d748872229062835ef3ab55bcb3f0f75f47",
+        "configs/scaled30-family-exact-confirmation-repair3-20260828.json": "fd9ed139873fd0c79d498a1d295334b36041f064e3f693cf4060bcd1f9379282",
+        "configs/scaled30-family-exact-confirmation-repair3-preflight-r128-20260828.json": "a567f67ddcd74019ab60f088763eb86bde8f3fcef3d507db252e3b8656fc9262",
+        "configs/scaled30-family-exact-confirmation-repair3-selected-20260828.json": "34929a4eda322db88471fb3a8a060fc23607c0d971842bd8cb65e9c4b61d368e",
+        "configs/scaled30-family-exact-confirmation-repair3-sentinel-r128-20260828.json": "6ef6d169a87588e2f0ac2cdfa883f9b302760b6c99e161f82ddb3015fc64c656"
+      },
+      "excluded_unique_prompt_texts": 550,
+      "near_duplicate_rule": "token-set Jaccard >= 0.90 excluded",
+      "selection_seed": "distdna-direct-exact-fresh-panel-v1-20260906",
+      "source_revision": "bdd27f4d94b9c1f951818a7da7fd7aeea5dbff1a",
+      "source_sha256": "2df9083338b4abd6bceb5635764dab5d833b393b55759dffb0959b6fcbf794ec"
+    },
+    "protocol": "reports/EXACT_MODEL_GPU_EXPERIMENT_PLAN_20260906.md",
+    "purpose": "direct all-gallery exact checkpoint identification under a fixed response budget",
+    "quality_gate": {
+      "duplicate_natural_keys_max": 0,
+      "malformed_records_max": 0,
+      "median_whitespace_words_min": 6,
+      "overall_truncation_rate_max": 0.25,
+      "per_model_truncation_rate_max": 0.25
+    },
+    "response_boundary": {
+      "max_nonempty_lines": 8,
+      "max_sentences": 4,
+      "max_words": 72
+    },
+    "response_collection_banks": {
+      "A": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "B": [
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "source_roster_fingerprint": "65d170243e31398a35e5be006530c133c2bfa7103dfaec68af6eeee79cd9804f",
+    "stop_strings": [],
+    "use_safetensors": {
+      "EleutherAI/pythia-410m-seed1": false,
+      "EleutherAI/pythia-410m-seed2": false,
+      "EleutherAI/pythia-410m-seed3": false,
+      "HuggingFaceTB/SmolLM2-1.7B": true,
+      "HuggingFaceTB/SmolLM2-1.7B-Instruct": true,
+      "HuggingFaceTB/SmolLM2-135M": true,
+      "HuggingFaceTB/SmolLM2-135M-Instruct": true,
+      "HuggingFaceTB/SmolLM2-360M": true,
+      "HuggingFaceTB/SmolLM2-360M-Instruct": true,
+      "Qwen/Qwen2.5-0.5B": true,
+      "Qwen/Qwen2.5-0.5B-Instruct": true,
+      "Qwen/Qwen2.5-1.5B": true,
+      "Qwen/Qwen2.5-1.5B-Instruct": true,
+      "Qwen/Qwen2.5-Coder-0.5B": true,
+      "Qwen/Qwen2.5-Coder-0.5B-Instruct": true,
+      "Qwen/Qwen2.5-Coder-1.5B": true,
+      "Qwen/Qwen2.5-Coder-1.5B-Instruct": true,
+      "TinyLlama/TinyLlama-1.1B-Chat-v1.0": true,
+      "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T": true,
+      "bigscience/bloom-1b1": true,
+      "bigscience/bloom-560m": true,
+      "bigscience/bloomz-1b1": true,
+      "bigscience/bloomz-560m": true,
+      "facebook/opt-1.3b": false,
+      "facebook/opt-iml-1.3b": false,
+      "stabilityai/stablelm-2-1_6b": true,
+      "stabilityai/stablelm-2-zephyr-1_6b": true,
+      "tiiuae/Falcon-H1-0.5B-Base": true,
+      "tiiuae/Falcon-H1-1.5B-Base": true,
+      "tiiuae/Falcon-H1-3B-Base": true
+    }
+  },
+  "model_ids": [
+    "HuggingFaceTB/SmolLM2-135M",
+    "HuggingFaceTB/SmolLM2-135M-Instruct",
+    "HuggingFaceTB/SmolLM2-360M",
+    "HuggingFaceTB/SmolLM2-360M-Instruct",
+    "HuggingFaceTB/SmolLM2-1.7B",
+    "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+    "Qwen/Qwen2.5-0.5B",
+    "Qwen/Qwen2.5-0.5B-Instruct",
+    "Qwen/Qwen2.5-1.5B",
+    "Qwen/Qwen2.5-1.5B-Instruct",
+    "Qwen/Qwen2.5-Coder-0.5B",
+    "Qwen/Qwen2.5-Coder-0.5B-Instruct",
+    "Qwen/Qwen2.5-Coder-1.5B",
+    "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+    "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T",
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    "facebook/opt-1.3b",
+    "facebook/opt-iml-1.3b",
+    "bigscience/bloom-560m",
+    "bigscience/bloomz-560m",
+    "bigscience/bloom-1b1",
+    "bigscience/bloomz-1b1",
+    "stabilityai/stablelm-2-1_6b",
+    "stabilityai/stablelm-2-zephyr-1_6b",
+    "EleutherAI/pythia-410m-seed1",
+    "EleutherAI/pythia-410m-seed2",
+    "EleutherAI/pythia-410m-seed3",
+    "tiiuae/Falcon-H1-0.5B-Base",
+    "tiiuae/Falcon-H1-1.5B-Base",
+    "tiiuae/Falcon-H1-3B-Base"
+  ],
+  "prompts": [
+    {
+      "prompt_id": "exact30_fresh_brainstorming_00",
+      "split": "calibration",
+      "text": "Who are the top 5 basketball players of all time? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_01",
+      "split": "calibration",
+      "text": "Who is the most popular president ever in the USA? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_02",
+      "split": "calibration",
+      "text": "How can you open a can without using your hands? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_03",
+      "split": "calibration",
+      "text": "What else can you do with a hammer other than hammering nails? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_04",
+      "split": "evaluation",
+      "text": "What are some Asian fusion lunches that are a one-bowl style meal? Please list the ingredients for each idea and include at least one vegetarian option. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_05",
+      "split": "evaluation",
+      "text": "What are 3 to 5 creative ways to prevent deer from walking through your yard? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_06",
+      "split": "evaluation",
+      "text": "What are four different recipes that you can make with Brussels Sprouts? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_07",
+      "split": "evaluation",
+      "text": "Can you use logistic regression and linear regression methods interchangeably? If yes, in what scenarios? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_08",
+      "split": "evaluation",
+      "text": "What are 5 ways to eat apples? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_09",
+      "split": "evaluation",
+      "text": "Give me a list of best Studio Ghibli Films Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_10",
+      "split": "evaluation",
+      "text": "Give me a list of different ways to reduce the fat and keep you in good shape. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_11",
+      "split": "evaluation",
+      "text": "How to prepare without baking dessert recipe -Banana Pudding? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_12",
+      "split": "evaluation",
+      "text": "If you were falling from an airplane and your parachute failed, list some things that you could try to increase your odds of surviving the fall. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_13",
+      "split": "evaluation",
+      "text": "Give me the top 5 things I should do to prepare for a holiday abroad Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_14",
+      "split": "evaluation",
+      "text": "Tell me all possible to boil an egg Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_15",
+      "split": "evaluation",
+      "text": "What is a good way to convince someone to do something Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_16",
+      "split": "evaluation",
+      "text": "What are the healthiest cooking methods for preparing meals? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_17",
+      "split": "evaluation",
+      "text": "Give me a list of things that pose a challenge to cryptos Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_18",
+      "split": "evaluation",
+      "text": "Give me a list of the great synth-pop artists and a song for each that I might not have heard. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_brainstorming_19",
+      "split": "evaluation",
+      "text": "Can you offer tips for visiting Mexico City for fun? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_00",
+      "split": "calibration",
+      "text": "Identify the first run broadcast network (ABC, NBC, or CBS) of the following TV shows: Castle, Chicago Fire, CSI, ER, Grey's Anatomy, Scandal, Seinfeld, Magnum PI Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_01",
+      "split": "calibration",
+      "text": "Do you know any other languages besides english?can you name colors in ARABIC? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_02",
+      "split": "calibration",
+      "text": "Sort the following volumes in ascending order: 300 imperial gallons, 2000 imperial pints, 500 litres, 1 cubic meter, 10000 imperial ounces, 1500 imperial quarts. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_03",
+      "split": "calibration",
+      "text": "Tell me whether these are College Football teams or NFL teams: Georgia, Giants, Chiefs, Panthers, Michigan, Texas Christian, Ohio State Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_04",
+      "split": "evaluation",
+      "text": "Which items should we not eat for a weight loss diet? Banana, Ice-cream, milk tea, chocolate, dates, bakery biscuits, cold drinks. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_05",
+      "split": "evaluation",
+      "text": "Which of the following are cities in Australia: Sydney, Melbourne, Adelaide, Perth, Canberra, Rio de Janeiro, Beijing, Shanghai, New York, Singapore, Germany, United States, Tokyo Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_06",
+      "split": "evaluation",
+      "text": "How many planets orbit the sun? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_07",
+      "split": "evaluation",
+      "text": "Classify each of the following as either an insect or a worm: tequila worm, silk worm, glow worm, inchworms, earthworms, tapeworm, hookworm, liver fluke, threadworm Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_08",
+      "split": "evaluation",
+      "text": "Which of the following countries are in Europe and which are in the rest of the world: Nicaragua, Australia, Austria, New Zealand, Morocco, Spain, Greece, China, Chile? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_09",
+      "split": "evaluation",
+      "text": "Which of these programming languages is different from the others : C++, Java, Go, Scala Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_10",
+      "split": "evaluation",
+      "text": "Tell me which one of the following countries are in the European Union: The Netherlands, Switzerland, Germany, Finland, the United Kingdom, Italy, Luxembourg, Turkey, Australia, Vietnam, Canada. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_11",
+      "split": "evaluation",
+      "text": "Of the following measurements, which units relate to mass? Kilogram, microgram, pound, litre, year, kilometre and ounce. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_12",
+      "split": "evaluation",
+      "text": "Classify each of these mammals as either marsupial or placental Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_13",
+      "split": "evaluation",
+      "text": "Who is the antagonist on The X-Files? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_14",
+      "split": "evaluation",
+      "text": "Determine which continent the following cities are located: London, Singapore, New York, Sao Paulo, Buenos Aires, Melbourne, Jakarta, Boston, Paris, Riyadh, Lagos, Casablanca, Toronto, and Berlin. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_15",
+      "split": "evaluation",
+      "text": "Tell me whether these mountains are included in the New Hampshire 4000 footers: Washington, Adams, Moosilauke, South Carter, Garfield, Wildcat A, Wildcat B, Wildcat C. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_16",
+      "split": "evaluation",
+      "text": "Tell me whether these are the names of presidents or movie stars: George Washington, Barack Obama, Brad Pitt, George Clooney, Matt Damon Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_17",
+      "split": "evaluation",
+      "text": "Tell me which one of these is different than others - Football, Hockey, Basketball, Baseball, Cricket, Lacrosse. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_18",
+      "split": "evaluation",
+      "text": "Classify each of these movies as being for adults or for kids. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_classification_19",
+      "split": "evaluation",
+      "text": "Classify each of the following on the basis of text (alphabetically) or numbers (numerically) - Bangalore, 265, Apple, 10, Bag, 49. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_00",
+      "split": "calibration",
+      "text": "What are your thoughts of Michael Jackson as a singer and person Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_01",
+      "split": "calibration",
+      "text": "What is a proof that there are two irrational numbers where raising one to the power of the other produces a rational number? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_02",
+      "split": "calibration",
+      "text": "What do you say to someone who is struggling with addiction? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_03",
+      "split": "calibration",
+      "text": "Imagine you are the CEO of Tiktok and have to give an argument in front of the Senate on why the US should not ban Tiktok. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_04",
+      "split": "evaluation",
+      "text": "List the ingredients and step by step instructions to make a glass of AMF. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_05",
+      "split": "evaluation",
+      "text": "Write a leave letter to your teacher. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_06",
+      "split": "evaluation",
+      "text": "How do I make good pour over coffee? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_07",
+      "split": "evaluation",
+      "text": "Write a mother’s negative review for a dentist office with a dirty waiting room. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_08",
+      "split": "evaluation",
+      "text": "Write a point of view on personal privacy in the age of software and technology. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_09",
+      "split": "evaluation",
+      "text": "Please write an email to the parent who complained about your child hitting their child. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_10",
+      "split": "evaluation",
+      "text": "Tell me three key things to do to drive a car faster on a track Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_11",
+      "split": "evaluation",
+      "text": "Write a letter to your friend expressing your feelings about earning your first wage. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_12",
+      "split": "evaluation",
+      "text": "what is more soothing - greenery or water bodies Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_13",
+      "split": "evaluation",
+      "text": "Write a paragraph about the word \"woman\". Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_14",
+      "split": "evaluation",
+      "text": "You stumble upon a new animal, one the world has never seen. What is it and how did you come up with it's name? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_15",
+      "split": "evaluation",
+      "text": "Write a paragraph to refute a claim by a colleague that ancient structures such as Stonehenge, the Great Pyramid are evidence of UFO activities on Earth Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_16",
+      "split": "evaluation",
+      "text": "What season is the best season to visit Chicago? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_17",
+      "split": "evaluation",
+      "text": "Why do people like the game Diplomacy? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_18",
+      "split": "evaluation",
+      "text": "Describe a recurring dream you've had. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_creative_writing_19",
+      "split": "evaluation",
+      "text": "Which is stronger - a lion or a tiger? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_00",
+      "split": "calibration",
+      "text": "Why is Pickleball sport so popular Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_01",
+      "split": "calibration",
+      "text": "I want to develop OKRs for my team at work. What process should I use? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_02",
+      "split": "calibration",
+      "text": "How do you decide what type of bicycle to buy? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_03",
+      "split": "calibration",
+      "text": "What does the acronym MEDDPICC stand for? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_04",
+      "split": "evaluation",
+      "text": "I'm considering buying football boots. How do I know which one to buy? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_05",
+      "split": "evaluation",
+      "text": "Why do people like to workout? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_06",
+      "split": "evaluation",
+      "text": "When is the best time to visit the Jersey shore in New Jersey? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_07",
+      "split": "evaluation",
+      "text": "What triggers urticaria at night and why are hives and itching at their worst? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_08",
+      "split": "evaluation",
+      "text": "How do you do meal prep efficiently and make cooking easy? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_09",
+      "split": "evaluation",
+      "text": "What constitutes the AWS Kinesis family? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_10",
+      "split": "evaluation",
+      "text": "Write a review of Carlos Ruiz Zafon's book The Shadow of the Wind Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_11",
+      "split": "evaluation",
+      "text": "How do you clear a scuba mask underwater ? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_12",
+      "split": "evaluation",
+      "text": "What is the benefit of having BDRS and SDRs? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_13",
+      "split": "evaluation",
+      "text": "How does the Harvard housing system work? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_14",
+      "split": "evaluation",
+      "text": "Why do some babies need to stay in the NICU? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_15",
+      "split": "evaluation",
+      "text": "I've heard astronauts talk about the normalization of deviance and the risks therein. What is the normalization of deviance, and how do I avoid it? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_16",
+      "split": "evaluation",
+      "text": "How can I tell my sourdough starter is ready to use? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_17",
+      "split": "evaluation",
+      "text": "Why are some reasons to vacation in New Zealand? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_18",
+      "split": "evaluation",
+      "text": "Where was the game of Pickle Ball invented. Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_general_qa_19",
+      "split": "evaluation",
+      "text": "Which city is best in Australia Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_00",
+      "split": "calibration",
+      "text": "What was special about the 2021 Formula 1 World Championship? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_01",
+      "split": "calibration",
+      "text": "What are some of the best outdoor experiences in Italy? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_02",
+      "split": "calibration",
+      "text": "Who where the San Diego Stingrays Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_03",
+      "split": "calibration",
+      "text": "What was the cause of MH370 flight's disappearance? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_04",
+      "split": "evaluation",
+      "text": "Why do oceans have salt water but rivers have fresh water? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_05",
+      "split": "evaluation",
+      "text": "What is Categorization and Sentiment Analysis Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_06",
+      "split": "evaluation",
+      "text": "What is the Tesla Model Y Charging Speed? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_07",
+      "split": "evaluation",
+      "text": "What is the difference between iOS and MacOS? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_08",
+      "split": "evaluation",
+      "text": "Which one is good for health coffee or tea Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_09",
+      "split": "evaluation",
+      "text": "How do you throw a cutter in Wiffle Ball? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_10",
+      "split": "evaluation",
+      "text": "How do I put a bouquet of fresh flowers in a vase? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_11",
+      "split": "evaluation",
+      "text": "Is it safe to invest in stocks? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_12",
+      "split": "evaluation",
+      "text": "What are some edible weeds that grow well in Maryland? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_13",
+      "split": "evaluation",
+      "text": "What number octane gas should be used for combustion engines in vehicles? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_14",
+      "split": "evaluation",
+      "text": "What are the different types of snowboarding styles? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_15",
+      "split": "evaluation",
+      "text": "Name a good ski mountain in Vermont Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_16",
+      "split": "evaluation",
+      "text": "Why is the green card process so long and complex for people from India and China? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_17",
+      "split": "evaluation",
+      "text": "What is the difference between love and affection? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_18",
+      "split": "evaluation",
+      "text": "How do you play an E major chord on a guitar? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    },
+    {
+      "prompt_id": "exact30_fresh_open_qa_19",
+      "split": "evaluation",
+      "text": "Of NFL teams who have gone to the Super Bowl, how many have a win percentage of Super Bowls of at least 50%? Respond directly in 3 to 6 complete sentences. Do not repeat the question."
+    }
+  ],
+  "random_seed": 2026090602,
+  "settings": [
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_0_7_top_p_1_0",
+      "temperature": 0.7,
+      "top_p": 1.0
+    },
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_0_5_top_p_1_0",
+      "temperature": 0.5,
+      "top_p": 1.0
+    },
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_0_9_top_p_1_0",
+      "temperature": 0.9,
+      "top_p": 1.0
+    },
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_0_7_top_p_0_9",
+      "temperature": 0.7,
+      "top_p": 0.9
+    },
+    {
+      "max_new_tokens": 128,
+      "setting_id": "temp_0_9_top_p_0_9",
+      "temperature": 0.9,
+      "top_p": 0.9
+    }
+  ]
+}
